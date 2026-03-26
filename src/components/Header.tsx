@@ -1,20 +1,21 @@
 "use client";
 import { usePathname } from "next/navigation";
-import { Bell, Search } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { Bell, Search, LogOut } from "lucide-react";
 
 const pageTitles: Record<string, string> = {
-  "/": "Dashboard",
-  "/workers": "Workers",
-  "/policies": "Policies",
-  "/claims": "Claims",
-  "/triggers": "Trigger Monitoring",
-  "/fraud": "Fraud Detection",
-  "/tasks": "Task Board",
-  "/settings": "Settings",
+  "/admin/dashboard": "Dashboard",
+  "/admin/workers": "Workers",
+  "/admin/policies": "Policies",
+  "/admin/claims": "Claims",
+  "/admin/triggers": "Trigger Monitoring",
+  "/admin/fraud": "Fraud Detection",
+  "/admin/settings": "Settings",
 };
 
 export default function Header() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
   const title = pageTitles[pathname] || "GigShield";
 
   return (
@@ -39,10 +40,19 @@ export default function Header() {
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
         </button>
 
+        {/* Logout */}
+        <button
+          onClick={logout}
+          className="p-2 rounded-xl hover:bg-white/5 text-gray-400 hover:text-red-400 transition-colors"
+          title="Logout"
+        >
+          <LogOut className="w-5 h-5" />
+        </button>
+
         {/* User */}
         <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white cursor-pointer hover:ring-2 hover:ring-indigo-500/50 transition-all"
           style={{ background: "linear-gradient(135deg, #6366f1, #ec4899)" }}>
-          JM
+          {user?.name?.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "AD"}
         </div>
       </div>
     </header>
