@@ -11,7 +11,7 @@ export default function TriggersPage() {
 
   const activeTriggers = triggers.filter(t => t.status === "active");
   const totalAffected = activeTriggers.reduce((sum, t) => sum + t.affectedWorkers, 0);
-
+  
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
