@@ -1,12 +1,38 @@
 "use client";
+import { useEffect, useState } from "react";
 import KPICard from "@/components/KPICard";
-import { Users, ShieldCheck, ClipboardList, ShieldAlert, TrendingUp, Activity } from "lucide-react";
-import { claimsChartData, premiumRevenueData, claims, triggers } from "@/data/mockData";
+import { Users, ShieldCheck, ClipboardList, ShieldAlert, TrendingUp, Activity, RefreshCw } from "lucide-react";
+import { claimsChartData, premiumRevenueData, claims } from "@/data/mockData";
+import { fetchWeather } from "@/services/weatherService";
+import { generateTriggers, DisruptionTrigger } from "@/services/triggerService";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend,
 } from "recharts";
 
 export default function AdminDashboardPage() {
+  const [liveTriggers, setLiveTriggers] = useState<DisruptionTrigger[]>([]);
+  const [loadingTriggers, setLoadingTriggers] = useState(true);
+
+  useEffect(() => {
+    const fetchLiveTriggers = async () => {
+      setLoadingTriggers(true);
+      try {
+        const indianCities = ["Delhi", "Mumbai", "Bengaluru", "Chennai", "Kolkata", "Hyderabad"];
+        const weatherPromises = indianCities.map(city => fetchWeather(city));
+        const weatherResults = await Promise.all(weatherPromises);
+        const allTriggers = weatherResults.flatMap(data => generateTriggers(data));
+        setLiveTriggers(allTriggers);
+      } catch (error) {
+        console.error("Failed to fetch live triggers on dashboard:", error);
+      } finally {
+        setLoadingTriggers(false);
+      }
+    };
+
+    fetchLiveTriggers();
+    const interval = setInterval(fetchLiveTriggers, 60000);
+    return () => clearInterval(interval);
+  }, []);
   return (
     <div className="space-y-8">
       {/* KPI Cards */}
@@ -138,23 +164,33 @@ export default function AdminDashboardPage() {
 
         {/* Active Triggers */}
         <div className="glass-card p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Active Triggers</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-white">Active Triggers</h3>
+            {loadingTriggers && <RefreshCw className="w-4 h-4 text-indigo-400 animate-spin" />}
+          </div>
           <div className="space-y-3">
-            {triggers.filter(t => t.status === "active").map((trigger) => (
-              <div key={trigger.id} className="flex items-center justify-between p-3 rounded-xl bg-white/3 hover:bg-white/5 transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">{trigger.icon}</span>
-                  <div>
-                    <p className="text-sm font-medium text-white">{trigger.type}</p>
-                    <p className="text-xs text-gray-500">{trigger.location}</p>
+            {liveTriggers.length === 0 && !loadingTriggers ? (
+              <div className="text-center py-6">
+                <span className="text-2xl mb-2 block">☀️</span>
+                <p className="text-sm text-gray-400">No active disruptions detected.</p>
+              </div>
+            ) : (
+              liveTriggers.filter(t => t.status === "active").map((trigger) => (
+                <div key={trigger.id} className="flex items-center justify-between p-3 rounded-xl bg-white/3 hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{trigger.icon}</span>
+                    <div>
+                      <p className="text-sm font-medium text-white">{trigger.type}</p>
+                      <p className="text-xs text-gray-500">{trigger.location}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-amber-400">{trigger.currentValue}</p>
+                    <p className="text-xs text-gray-500">{trigger.affectedWorkers} workers affected</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-amber-400">{trigger.currentValue}</p>
-                  <p className="text-xs text-gray-500">{trigger.affectedWorkers} workers affected</p>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>
