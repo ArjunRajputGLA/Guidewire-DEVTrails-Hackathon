@@ -3,24 +3,20 @@ import { useEffect, useState } from "react";
 import KPICard from "@/components/KPICard";
 import { Users, ShieldCheck, ClipboardList, ShieldAlert, TrendingUp, Activity, RefreshCw } from "lucide-react";
 import { claimsChartData, premiumRevenueData, claims } from "@/data/mockData";
-import { fetchWeather } from "@/services/weatherService";
-import { generateTriggers, DisruptionTrigger } from "@/services/triggerService";
+import { monitorAllLocations, IntegratedTrigger } from "@/services/monitorService";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend,
 } from "recharts";
 
 export default function AdminDashboardPage() {
-  const [liveTriggers, setLiveTriggers] = useState<DisruptionTrigger[]>([]);
+  const [liveTriggers, setLiveTriggers] = useState<IntegratedTrigger[]>([]);
   const [loadingTriggers, setLoadingTriggers] = useState(true);
 
   useEffect(() => {
     const fetchLiveTriggers = async () => {
       setLoadingTriggers(true);
       try {
-        const indianCities = ["Delhi", "Mumbai", "Bengaluru", "Chennai", "Kolkata", "Hyderabad"];
-        const weatherPromises = indianCities.map(city => fetchWeather(city));
-        const weatherResults = await Promise.all(weatherPromises);
-        const allTriggers = weatherResults.flatMap(data => generateTriggers(data));
+        const allTriggers = await monitorAllLocations();
         setLiveTriggers(allTriggers);
       } catch (error) {
         console.error("Failed to fetch live triggers on dashboard:", error);
@@ -121,7 +117,7 @@ export default function AdminDashboardPage() {
                   borderRadius: "12px",
                   color: "#f3f4f6",
                 }}
-                formatter={(value: number) => [`₹${value.toLocaleString()}`, undefined]}
+                formatter={(value) => [`₹${(Number(value) || 0).toLocaleString()}`, undefined]}
               />
               <Legend wrapperStyle={{ color: "#9ca3af" }} />
               <Bar dataKey="revenue" name="Premium Revenue" fill="#6366f1" radius={[4, 4, 0, 0]} />
@@ -170,7 +166,7 @@ export default function AdminDashboardPage() {
           </div>
           <div className="space-y-3">
             {liveTriggers.filter(t => t.status === "active").length === 0 && !loadingTriggers ? (
-              <div className="text-center py-31">
+              <div className="text-center py-10">
                 <p className="text-sm text-gray-400">No active disruptions detected.</p>
               </div>
             ) : (

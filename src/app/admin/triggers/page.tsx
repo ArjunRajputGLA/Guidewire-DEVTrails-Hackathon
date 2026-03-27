@@ -75,6 +75,7 @@ export default function TriggersPage() {
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
               className="bg-transparent text-sm text-gray-200 outline-none w-full"
+              aria-label="Filter triggers by city"
             >
               <option value="All India">All India</option>
               {locations.map((loc) => (

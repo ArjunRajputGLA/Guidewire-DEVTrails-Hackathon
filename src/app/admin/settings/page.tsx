@@ -1,5 +1,5 @@
 "use client";
-import { Bell, Globe, Lock, Palette, Server, User } from "lucide-react";
+import { Bell, Globe, Server, User } from "lucide-react";
 
 export default function SettingsPage() {
   const sections = [
@@ -64,7 +64,10 @@ export default function SettingsPage() {
                 <div key={field.label} className="flex items-center justify-between">
                   <label className="text-sm text-gray-400">{field.label}</label>
                   {field.type === "toggle" ? (
-                    <button className={`w-11 h-6 rounded-full relative transition-colors ${
+                    <button 
+                      type="button"
+                      aria-label={`Toggle ${field.label}`}
+                      className={`w-11 h-6 rounded-full relative transition-colors ${
                       field.value ? "bg-indigo-500" : "bg-gray-700"
                     }`}>
                       <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
@@ -74,6 +77,7 @@ export default function SettingsPage() {
                   ) : (
                     <input
                       type="text"
+                      aria-label={field.label}
                       defaultValue={String(field.value)}
                       className="w-72 px-4 py-2 rounded-xl text-sm bg-white/5 border border-white/10 text-gray-300 focus:outline-none focus:border-indigo-500/50 transition-all"
                     />
@@ -87,7 +91,7 @@ export default function SettingsPage() {
 
       {/* Save */}
       <div className="flex justify-end">
-        <button className="px-6 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90"
+        <button type="button" className="px-6 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90"
           style={{ background: "linear-gradient(135deg, #6366f1, #818cf8)" }}>
           Save Changes
         </button>

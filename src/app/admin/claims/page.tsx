@@ -8,13 +8,14 @@ export default function ClaimsPage() {
   const [isManualFormOpen, setIsManualFormOpen] = useState(false);
   const [newClaimData, setNewClaimData] = useState({ userId: "", reason: "", amount: "" });
 
-  useEffect(() => {
-    loadClaims();
-  }, []);
-
   const loadClaims = () => {
     setClaimsList(getClaims());
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadClaims();
+  }, []);
 
   const handleAddClaim = (e: React.FormEvent) => {
     e.preventDefault();
