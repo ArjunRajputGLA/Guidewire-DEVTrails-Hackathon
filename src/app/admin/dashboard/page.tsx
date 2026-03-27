@@ -169,9 +169,8 @@ export default function AdminDashboardPage() {
             {loadingTriggers && <RefreshCw className="w-4 h-4 text-indigo-400 animate-spin" />}
           </div>
           <div className="space-y-3">
-            {liveTriggers.length === 0 && !loadingTriggers ? (
-              <div className="text-center py-6">
-                <span className="text-2xl mb-2 block">☀️</span>
+            {liveTriggers.filter(t => t.status === "active").length === 0 && !loadingTriggers ? (
+              <div className="text-center py-31">
                 <p className="text-sm text-gray-400">No active disruptions detected.</p>
               </div>
             ) : (
