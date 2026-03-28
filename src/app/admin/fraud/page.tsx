@@ -9,6 +9,7 @@ export default function FraudPage() {
     cleared: { color: "bg-emerald-500/15 text-emerald-400", icon: <ShieldCheck className="w-4 h-4" />, label: "Cleared" },
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const riskGradient = (score: number) => {
     if (score >= 80) return "from-red-500 to-red-600";
     if (score >= 50) return "from-amber-500 to-amber-600";
