@@ -25,9 +25,12 @@
 }
 
 body {
-  background: var(--color-background);
+  background: radial-gradient(circle at top left, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+              radial-gradient(circle at bottom right, rgba(167, 139, 250, 0.05) 0%, transparent 40%),
+              var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+  min-height: 100vh;
 }
 
 /* Animations */
@@ -60,17 +63,33 @@ body {
 }
 
 .glass-card {
-  background: rgba(17, 24, 39, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 16px;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card:hover {
-  background: rgba(31, 41, 55, 0.8);
-  border-color: rgba(99, 102, 241, 0.3);
-  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
+  background: rgba(25, 33, 48, 0.8);
+  border-color: rgba(99, 102, 241, 0.2);
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.12), 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Premium Button Hover & Tap */
+button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:hover:not(:disabled) {
+  transform: scale(1.02);
+  filter: brightness(1.1);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .gradient-text {

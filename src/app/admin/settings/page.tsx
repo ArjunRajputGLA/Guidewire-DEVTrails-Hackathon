@@ -1,5 +1,6 @@
 "use client";
 import { Bell, Globe, Server, User } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function SettingsPage() {
   const sections = [
@@ -38,16 +39,25 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-4xl">
-      <div>
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1, transition: { staggerChildren: 0.1 } }}
+      className="space-y-6 max-w-4xl"
+    >
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h2 className="text-2xl font-bold text-white">Settings</h2>
         <p className="text-sm text-gray-400 mt-1">Manage your GigShield admin configuration</p>
-      </div>
+      </motion.div>
 
       {sections.map((section, i) => {
         const Icon = section.icon;
         return (
-          <div key={section.title} className="glass-card p-6"
+          <motion.div 
+            key={section.title} 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+            className="glass-card p-6"
             style={{ animationDelay: `${i * 100}ms` }}>
             <div className="flex items-center gap-3 mb-5">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-indigo-500/10 border border-indigo-500/20">
@@ -85,17 +95,17 @@ export default function SettingsPage() {
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
         );
       })}
 
       {/* Save */}
-      <div className="flex justify-end">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="flex justify-end">
         <button type="button" className="px-6 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90"
-          style={{ background: "linear-gradient(135deg, #6366f1, #818cf8)" }}>
+          style={{ background: "linear-gradient(135deg, #6366f1, #818cf8)" }}>  
           Save Changes
         </button>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

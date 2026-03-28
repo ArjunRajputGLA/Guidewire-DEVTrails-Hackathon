@@ -3,6 +3,17 @@ import { useEffect, useState } from "react";
 import { Radio, RefreshCw, Filter } from "lucide-react";
 import { locations } from "@/data/locations";
 import { monitorAllLocations, IntegratedTrigger } from "@/services/monitorService";
+import { motion, AnimatePresence } from "framer-motion";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, scale: 0.95, y: 10 },
+  show: { opacity: 1, scale: 1, y: 0 }
+};
 
 export default function TriggersPage() {
   const [triggers, setTriggers] = useState<IntegratedTrigger[]>([]);
@@ -54,7 +65,12 @@ export default function TriggersPage() {
   const totalAffected = activeTriggers.reduce((sum, t) => sum + t.affectedWorkers, 0);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="space-y-6"
+    >
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-white">Trigger Monitoring</h2>
@@ -100,20 +116,50 @@ export default function TriggersPage() {
       </div>
 
       {loading && filteredTriggers.length === 0 ? (
-        <div className="flex items-center justify-center py-20">
-          <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
+        <div className="grid grid-cols-1 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="glass-card p-6 border border-gray-800/50 animate-pulse">
+              <div className="flex gap-4">
+                <div className="w-10 h-10 bg-gray-800 rounded-full shrink-0" />
+                <div className="space-y-3 w-full">
+                  <div className="h-5 bg-gray-800 rounded w-1/3" />
+                  <div className="h-4 bg-gray-800 rounded w-1/4" />
+                  <div className="grid grid-cols-4 gap-6 mt-4">
+                    <div className="h-10 bg-gray-800 rounded w-full" />
+                    <div className="h-10 bg-gray-800 rounded w-full" />
+                    <div className="h-10 bg-gray-800 rounded w-full" />
+                    <div className="h-10 bg-gray-800 rounded w-full" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : filteredTriggers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-12 glass-card text-center border-dashed">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center justify-center p-12 glass-card text-center border-dashed"
+        >
           <span className="text-4xl mb-4">☀️</span>
           <h3 className="text-lg font-medium text-white mb-2">No Active Disruption Triggers</h3>
           <p className="text-sm text-gray-400">Weather conditions in {selectedCity} are normal. No external disruptions detected for gig workers.</p>
-        </div>
+        </motion.div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {filteredTriggers.map((trigger, i) => (
-            <div key={trigger.id} className="glass-card p-6"
-              style={{ animationDelay: `${i * 40}ms` }}>
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-1 gap-4"
+        >
+          <AnimatePresence mode="popLayout">
+          {filteredTriggers.map((trigger) => (
+            <motion.div 
+              key={trigger.id} 
+              variants={itemVariants}
+              layout
+              className="glass-card p-6"
+            >
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-start gap-4">
                   <span className="text-4xl shrink-0 mt-1">{trigger.icon}</span>
@@ -154,10 +200,11 @@ export default function TriggersPage() {
                   </button>
                 )}
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+          </AnimatePresence>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }
