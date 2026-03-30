@@ -1,38 +1,35 @@
-"use client";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
-import WorkerSidebar from "@/components/WorkerSidebar";
-import WorkerHeader from "@/components/WorkerHeader";
+'use client'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase-browser'
 
 export default function WorkerLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+  const router = useRouter()
+  const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    if (loading) return;
-    if (!user) {
-      router.replace("/login");
-    } else if (user.role !== "worker") {
-      router.replace("/admin/dashboard");
+    const check = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.replace('/login')
+        return
+      }
+      setChecking(false)
     }
-  }, [user, loading, router]);
+    check()
+  }, [router])
 
-  if (loading || !user || user.role !== "worker") {
+  if (checking) {
     return (
-      <div className="auth-page">
-        <div className="w-10 h-10 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+      <div style={{
+        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%)',
+      }}>
+        <div style={{ width: 40, height: 40, border: '2px solid rgba(249,115,22,0.3)', borderTop: '2px solid #f97316', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
-    );
+    )
   }
 
-  return (
-    <div className="flex min-h-screen">
-      <WorkerSidebar />
-      <div className="flex-1 ml-64 flex flex-col">
-        <WorkerHeader />
-        <main className="flex-1 p-8 overflow-y-auto">{children}</main>
-      </div>
-    </div>
-  );
+  return <>{children}</>
 }
