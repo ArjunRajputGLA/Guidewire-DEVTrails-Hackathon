@@ -208,16 +208,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [showPass, setShowPass] = useState(false)
 
-  const handleLogin = async () => {
+  const handleLogin = async (role: 'admin' | 'worker' = 'worker') => {
     if (!email || !password) { setError('Please fill in all fields'); return }
     
-    // Hardcoded admin login
-    if (email === 'admin@gigshield.com' && password === '123456') {
+    // Admin login path
+    if (role === 'admin' || (email === 'admin@gigshield.com' && password === '123456')) {
       const res = login(email, password)
       if (res.success) {
         router.push('/admin/dashboard')
       } else {
-        setError(res.error || 'Failed to login')
+        setError(res.error || 'Failed to login as admin')
       }
       return
     }
@@ -375,7 +375,7 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              onKeyDown={e => e.key === 'Enter' && handleLogin('worker')}
               placeholder="you@example.com"
               style={{
                 width: '100%', padding: '13px 16px',
@@ -402,7 +402,7 @@ export default function LoginPage() {
                 type={showPass ? 'text' : 'password'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              onKeyDown={e => e.key === 'Enter' && handleLogin('worker')}
                 placeholder="Enter your password"
                 style={{
                   width: '100%', padding: '13px 44px 13px 16px',
@@ -425,22 +425,41 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <button
-            className="sign-btn"
-            onClick={handleLogin}
-            disabled={loading}
-            style={{
-              width: '100%', padding: '14px',
-              background: loading ? 'rgba(249,115,22,0.35)' : 'linear-gradient(135deg, #f97316, #ea580c)',
-              border: 'none', borderRadius: 11,
-              color: '#fff', fontSize: 15, fontWeight: 600,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              fontFamily: '"DM Sans", sans-serif',
-              letterSpacing: '0.01em',
-            }}
-          >
-            {loading ? 'Signing in...' : 'Sign in →'}
-          </button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button
+              className="sign-btn"
+              onClick={() => handleLogin('admin')}
+              disabled={loading}
+              style={{
+                flex: 1, padding: '14px',
+                background: loading ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.1)', borderRadius: 11,
+                color: '#fff', fontSize: 13, fontWeight: 600,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontFamily: '"DM Sans", sans-serif',
+                letterSpacing: '0.01em',
+              }}
+            >
+              {loading ? '...' : 'Admin Login'}
+            </button>
+
+            <button
+              className="sign-btn"
+              onClick={() => handleLogin('worker')}
+              disabled={loading}
+              style={{
+                flex: 2, padding: '14px',
+                background: loading ? 'rgba(249,115,22,0.35)' : 'linear-gradient(135deg, #f97316, #ea580c)',
+                border: 'none', borderRadius: 11,
+                color: '#fff', fontSize: 14, fontWeight: 600,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontFamily: '"DM Sans", sans-serif',
+                letterSpacing: '0.01em',
+              }}
+            >
+              {loading ? 'Signing in...' : 'Worker Login →'}
+            </button>
+          </div>
 
           <div style={{
             display: 'flex', alignItems: 'center', gap: 12,
