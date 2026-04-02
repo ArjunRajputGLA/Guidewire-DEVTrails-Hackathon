@@ -19,39 +19,7 @@ interface WeatherTrigger {
   affectedWorkers: number;
 }
 
-const CITIES = [
-  // Mumbai & Suburbs
-  { name: "Andheri", region: "Mumbai", area: "Maharashtra", lat: 19.1136, lon: 72.8697 },
-  { name: "Bandra", region: "Mumbai", area: "Maharashtra", lat: 19.0596, lon: 72.8295 },
-  { name: "Navi Mumbai", region: "Navi Mumbai", area: "Maharashtra", lat: 19.0330, lon: 73.0297 },
-  { name: "Thane", region: "Thane", area: "Maharashtra", lat: 19.2183, lon: 72.9781 },
-  // Delhi & NCR
-  { name: "Connaught Place", region: "Delhi", area: "Delhi", lat: 28.6304, lon: 77.2177 },
-  { name: "Dwarka", region: "Delhi", area: "Delhi", lat: 28.5823, lon: 77.0500 },
-  { name: "Rohini", region: "Delhi", area: "Delhi", lat: 28.7366, lon: 77.1132 },
-  { name: "Gurugram", region: "Gurugram", area: "Haryana", lat: 28.4595, lon: 77.0266 },
-  { name: "Noida", region: "Noida", area: "UP", lat: 28.5355, lon: 77.3910 },
-  // Bangalore
-  { name: "Koramangala", region: "Bangalore", area: "Karnataka", lat: 12.9352, lon: 77.6245 },
-  { name: "Whitefield", region: "Bangalore", area: "Karnataka", lat: 12.9698, lon: 77.7499 },
-  { name: "Indiranagar", region: "Bangalore", area: "Karnataka", lat: 12.9784, lon: 77.6408 },
-  { name: "Electronic City", region: "Bangalore", area: "Karnataka", lat: 12.8399, lon: 77.6770 },
-  // Hyderabad
-  { name: "HITEC City", region: "Hyderabad", area: "Telangana", lat: 17.4435, lon: 78.3772 },
-  { name: "Gachibowli", region: "Hyderabad", area: "Telangana", lat: 17.4401, lon: 78.3489 },
-  // Chennai
-  { name: "T Nagar", region: "Chennai", area: "Tamil Nadu", lat: 13.0405, lon: 80.2337 },
-  { name: "Velachery", region: "Chennai", area: "Tamil Nadu", lat: 12.9754, lon: 80.2205 },
-  // Pune
-  { name: "Hinjewadi", region: "Pune", area: "Maharashtra", lat: 18.5913, lon: 73.7389 },
-  { name: "Kothrud", region: "Pune", area: "Maharashtra", lat: 18.5074, lon: 73.8077 },
-  // Kolkata
-  { name: "Salt Lake", region: "Kolkata", area: "West Bengal", lat: 22.5804, lon: 88.4200 },
-  { name: "New Town", region: "Kolkata", area: "West Bengal", lat: 22.5855, lon: 88.4633 },
-  // Ahmedabad
-  { name: "Satellite", region: "Ahmedabad", area: "Gujarat", lat: 23.0333, lon: 72.5217 },
-  { name: "Bopal", region: "Ahmedabad", area: "Gujarat", lat: 23.0305, lon: 72.4597 }
-];
+const CITIES = []; // We now dynamically fetch cities from worker profiles
 
 export default function AdminDashboardPage() {
   const [activeTriggers, setActiveTriggers] = useState<WeatherTrigger[]>([]);
@@ -63,12 +31,24 @@ export default function AdminDashboardPage() {
         const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
         if (!apiKey) throw new Error("Weather API Key not found");
 
+        const { data: incomeData, error: incomeError } = await supabase
+          .from("income_data")
+          .select("city_zone");
+        
+        if (incomeError) throw incomeError;
+        
+        const rawZones = incomeData?.map(d => d.city_zone).filter(Boolean) || [];
+        const uniqueZones = Array.from(new Set(rawZones)) as string[];
+
         const triggerResults = await Promise.all(
-          CITIES.map(async (city) => {
+          uniqueZones.map(async (zoneName) => {
             const res = await fetch(
-              `https://api.openweathermap.org/data/2.5/weather?lat=${city.lat}&lon=${city.lon}&appid=${apiKey}&units=metric`
+              `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(zoneName)},IN&appid=${apiKey}&units=metric`
             );
-            if (!res.ok) return null;
+            if (!res.ok) {
+              console.warn(`Weather check failed for ${zoneName}`);
+              return null;
+            }
             const data = await res.json();
 
             const temp = data.main.temp;
@@ -91,15 +71,15 @@ export default function AdminDashboardPage() {
             if (status !== "active") return null;
 
             const { count } = await supabase
-              .from("worker_profiles")
+              .from("income_data")
               .select("*", { count: "exact", head: true })
-              .ilike("city", `%${city.region}%`); // Match worker profiles by broad region
+              .ilike("city_zone", `%${zoneName}%`);
 
             return {
-              id: `trigger-${city.name.toLowerCase().replace(/\s+/g, '-')}`,
+              id: `trigger-${zoneName.toLowerCase().replace(/\s+/g, '-')}`,
               type: alertType,
               icon,
-              location: `${city.name}, ${city.region}`,
+              location: `${zoneName}, India`,
               status,
               threshold: temp > 35 ? "> 35°C" : "> 10mm/h Rain",
               currentValue: `${temp.toFixed(1)}°C, ${data.weather[0].description}`,

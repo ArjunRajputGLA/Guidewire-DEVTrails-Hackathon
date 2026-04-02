@@ -18,58 +18,47 @@ interface WeatherTrigger {
   temp: number;
 }
 
-const CITIES = [
-  // Mumbai & Suburbs
-  { name: "Andheri", region: "Mumbai", area: "Maharashtra", lat: 19.1136, lon: 72.8697 },
-  { name: "Bandra", region: "Mumbai", area: "Maharashtra", lat: 19.0596, lon: 72.8295 },
-  { name: "Navi Mumbai", region: "Navi Mumbai", area: "Maharashtra", lat: 19.0330, lon: 73.0297 },
-  { name: "Thane", region: "Thane", area: "Maharashtra", lat: 19.2183, lon: 72.9781 },
-  // Delhi & NCR
-  { name: "Connaught Place", region: "Delhi", area: "Delhi", lat: 28.6304, lon: 77.2177 },
-  { name: "Dwarka", region: "Delhi", area: "Delhi", lat: 28.5823, lon: 77.0500 },
-  { name: "Rohini", region: "Delhi", area: "Delhi", lat: 28.7366, lon: 77.1132 },
-  { name: "Gurugram", region: "Gurugram", area: "Haryana", lat: 28.4595, lon: 77.0266 },
-  { name: "Noida", region: "Noida", area: "UP", lat: 28.5355, lon: 77.3910 },
-  // Bangalore
-  { name: "Koramangala", region: "Bangalore", area: "Karnataka", lat: 12.9352, lon: 77.6245 },
-  { name: "Whitefield", region: "Bangalore", area: "Karnataka", lat: 12.9698, lon: 77.7499 },
-  { name: "Indiranagar", region: "Bangalore", area: "Karnataka", lat: 12.9784, lon: 77.6408 },
-  { name: "Electronic City", region: "Bangalore", area: "Karnataka", lat: 12.8399, lon: 77.6770 },
-  // Hyderabad
-  { name: "HITEC City", region: "Hyderabad", area: "Telangana", lat: 17.4435, lon: 78.3772 },
-  { name: "Gachibowli", region: "Hyderabad", area: "Telangana", lat: 17.4401, lon: 78.3489 },
-  // Chennai
-  { name: "T Nagar", region: "Chennai", area: "Tamil Nadu", lat: 13.0405, lon: 80.2337 },
-  { name: "Velachery", region: "Chennai", area: "Tamil Nadu", lat: 12.9754, lon: 80.2205 },
-  // Pune
-  { name: "Hinjewadi", region: "Pune", area: "Maharashtra", lat: 18.5913, lon: 73.7389 },
-  { name: "Kothrud", region: "Pune", area: "Maharashtra", lat: 18.5074, lon: 73.8077 },
-  // Kolkata
-  { name: "Salt Lake", region: "Kolkata", area: "West Bengal", lat: 22.5804, lon: 88.4200 },
-  { name: "New Town", region: "Kolkata", area: "West Bengal", lat: 22.5855, lon: 88.4633 },
-  // Ahmedabad
-  { name: "Satellite", region: "Ahmedabad", area: "Gujarat", lat: 23.0333, lon: 72.5217 },
-  { name: "Bopal", region: "Ahmedabad", area: "Gujarat", lat: 23.0305, lon: 72.4597 }
-];
+const CITIES = []; // We now dynamically fetch cities from worker profiles
 
 export default function TriggersPage() {
   const [triggers, setTriggers] = useState<WeatherTrigger[]>([]);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [loading, setLoading] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchWeatherData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
-      if (!apiKey) throw new Error("Weather API Key not found");
+      if (!apiKey) throw new Error("Weather API Key not found. Please add NEXT_PUBLIC_WEATHER_API_KEY to your environment.");
 
-      const newTriggers: WeatherTrigger[] = await Promise.all(
-        CITIES.map(async (city) => {
+      // Fetch dynamic active worker cities from income_data city_zone
+      const { data: incomeData, error: incomeError } = await supabase
+        .from("income_data")
+        .select("city_zone");
+      
+      if (incomeError) throw new Error(`Supabase query failed: ${incomeError.message}`);
+      
+      const rawZones = incomeData?.map(d => d.city_zone).filter(Boolean) || [];
+      const uniqueZones = Array.from(new Set([...rawZones, "Mathura", "Vrindavan"])) as string[];
+
+      if (uniqueZones.length === 0) {
+         setTriggers([]);
+         setLoading(false);
+         return;
+      }
+
+      const rawTriggers = await Promise.all(
+        uniqueZones.map(async (zoneName) => {
           const res = await fetch(
-            `https://api.openweathermap.org/data/2.5/weather?lat=${city.lat}&lon=${city.lon}&appid=${apiKey}&units=metric`
+            `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(zoneName)},IN&appid=${apiKey}&units=metric`
           );
-          if (!res.ok) throw new Error(`Weather check failed for ${city.name}`);
+          if (!res.ok) {
+            console.warn(`Weather check failed for ${zoneName}`);
+            return null;
+          }
           const data = await res.json();
 
           const temp = data.main.temp;
@@ -91,32 +80,36 @@ export default function TriggersPage() {
 
           // Fetch affected workers count from Supabase
           const { count } = await supabase
-            .from("worker_profiles")
+            .from("income_data")
             .select("*", { count: "exact", head: true })
-            .ilike("city", `%${city.region}%`); // Match broader region
+            .ilike("city_zone", `%${zoneName}%`);
 
           return {
-            id: `trigger-${city.name.toLowerCase().replace(/\s+/g, '-')}`,
+            id: `trigger-${zoneName.toLowerCase().replace(/\s+/g, '-')}`,
             type: alertType,
             icon,
-            location: `${city.name}, ${city.region}`,
+            location: `${zoneName}, India`,
             status,
             threshold: temp > 35 ? "> 35°C" : "> 10mm/h Rain",
             currentValue: `${temp.toFixed(1)}°C, ${data.weather[0].description}`,
             affectedWorkers: count || 0,
             detectedAt: new Date().toLocaleTimeString(),
-            lat: city.lat,
-            lon: city.lon,
+            lat: data.coord.lat,
+            lon: data.coord.lon,
             temp
           };
         })
       );
       
-      setTriggers(newTriggers.sort((a,b) => (b.status === "active" ? 1 : 0) - (a.status === "active" ? 1 : 0)));
+      const validTriggers = rawTriggers.filter(Boolean) as WeatherTrigger[];
+      setTriggers(validTriggers.sort((a,b) => (b.status === "active" ? 1 : 0) - (a.status === "active" ? 1 : 0)));
       setLastRefreshed(new Date());
       setElapsedSeconds(0);
-    } catch (err) {
-      console.error(err);
+    } catch (err: unknown) {
+      console.error("Error fetching weather data:", err);
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred while fetching zones.";
+      setError(errorMessage);
+      setTriggers([]);
     } finally {
       setLoading(false);
     }
@@ -166,18 +159,46 @@ export default function TriggersPage() {
             <button 
               onClick={fetchWeatherData} 
               disabled={loading}
-              className={`p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-all ${loading ? 'opacity-50' : ''}`}
+              className={`flex items-center gap-2 group px-4 py-2 text-sm font-medium rounded-lg bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-all text-indigo-400 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <RefreshCw className={`w-4 h-4 text-indigo-400 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+              Fetch Zones
             </button>
           </h2>
-          <p className="text-sm text-gray-400 mt-1">Real-time parametric disruption detection (Updated {elapsedSeconds}s ago)</p>
+          <p className="text-sm text-gray-400 mt-2">Real-time parametric disruption detection (Updated {elapsedSeconds}s ago)</p>
         </div>
         <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20">
           <Radio className="w-4 h-4 text-red-400 animate-pulse" />
           <span className="text-sm font-medium text-red-400">{activeTriggers.length} Active · {totalAffected} Workers Affected</span>
         </div>
       </div>
+
+      {error && (
+        <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 text-sm">
+          <strong>Error loading triggers:</strong> {error}
+        </div>
+      )}
+
+      {!loading && triggers.length === 0 && !error && (
+        <div className="p-12 border border-dashed border-gray-700 rounded-xl text-center flex flex-col items-center justify-center text-gray-400">
+          <span className="text-4xl mb-3">📡</span>
+          <h3 className="text-lg font-semibold text-white">No zones to monitor</h3>
+          <p className="text-sm mt-1 max-w-sm">No worker city zones were found in the database. Register gig workers first, then fetch zones to start tracking anomalies.</p>
+          <button 
+            onClick={fetchWeatherData}
+            className="mt-6 px-4 py-2 rounded-lg bg-indigo-500 text-white font-medium hover:bg-indigo-600 transition-colors"
+          >
+            Refetch Regions
+          </button>
+        </div>
+      )}
+
+      {loading && triggers.length === 0 && (
+        <div className="p-12 text-center text-gray-400 flex flex-col items-center justify-center">
+            <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin mb-4" />
+            <p>Fetching active worker zones and weather data...</p>
+        </div>
+      )}
 
       {/* Trigger Cards */}
       <div className="grid grid-cols-1 gap-4">
