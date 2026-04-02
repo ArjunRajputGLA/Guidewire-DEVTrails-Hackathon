@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import KPICard from "@/components/KPICard";
 import { Users, ShieldCheck, ClipboardList, ShieldAlert, TrendingUp, Activity, AlertTriangle } from "lucide-react";
-import { claimsChartData, premiumRevenueData, claims } from "@/data/mockData";
+import { claimsChartData, premiumRevenueData } from "@/data/mockData";
 import { supabase } from "@/lib/supabase-browser";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend,
@@ -24,6 +24,15 @@ const CITIES = []; // We now dynamically fetch cities from worker profiles
 export default function AdminDashboardPage() {
   const [activeTriggers, setActiveTriggers] = useState<WeatherTrigger[]>([]);
   const [loadingTriggers, setLoadingTriggers] = useState(true);
+  const [recentClaims, setRecentClaims] = useState<any[]>([]);
+  const [loadingClaims, setLoadingClaims] = useState(true);
+  
+  const [kpiStats, setKpiStats] = useState({
+    workers: "...",
+    policies: "...",
+    claimsThisWeek: "...",
+    fraudAlerts: "..."
+  });
 
   useEffect(() => {
     const fetchActiveTriggers = async () => {
@@ -176,39 +185,95 @@ export default function AdminDashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const fetchRecentClaims = async () => {
+      setLoadingClaims(true);
+      const { data, error } = await supabase
+        .from("claims")
+        .select("*, worker_profiles(full_name)")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (!error && data) {
+        setRecentClaims(data);
+      }
+      setLoadingClaims(false);
+    };
+
+    const fetchKPIs = async () => {
+      const { count: workersCount } = await supabase
+        .from("worker_profiles")
+        .select("*", { count: "exact", head: true });
+
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const { count: claimsCount } = await supabase
+        .from("claims")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", sevenDaysAgo.toISOString());
+
+      const { count: fraudCount } = await supabase
+        .from("claims")
+        .select("*", { count: "exact", head: true })
+        .gte("fraud_score", 30) // Our mock threshold for "suspicious"
+        .eq("status", "pending-review");
+        
+      setKpiStats({
+        workers: workersCount ? workersCount.toString() : "0",
+        policies: workersCount ? workersCount.toString() : "0", // 1 policy per onboarded worker
+        claimsThisWeek: claimsCount ? claimsCount.toString() : "0",
+        fraudAlerts: fraudCount ? fraudCount.toString() : "0"
+      });
+    };
+
+    fetchRecentClaims();
+    fetchKPIs();
+  }, []);
+
+  function formatAgo(dateString: string) {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const diffMins = Math.floor((Date.now() - date.getTime()) / 60000);
+    if (diffMins < 60) return `${diffMins || 1}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${Math.floor(diffHours / 24)}d ago`;
+  }
+
   return (
     <div className="space-y-8">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <KPICard
           title="Active Workers"
-          value="1,247"
-          change="↑ 12% from last week"
+          value={kpiStats.workers}
+          change="Live from database"
           changeType="positive"
           icon={Users}
           gradient="linear-gradient(135deg, #6366f1, #818cf8)"
         />
         <KPICard
           title="Active Policies"
-          value="983"
-          change="↑ 8% from last week"
+          value={kpiStats.policies}
+          change="Live from database"
           changeType="positive"
           icon={ShieldCheck}
           gradient="linear-gradient(135deg, #8b5cf6, #a78bfa)"
         />
         <KPICard
           title="Claims This Week"
-          value="19"
-          change="↓ 5 fewer than last week"
-          changeType="positive"
+          value={kpiStats.claimsThisWeek}
+          change="Past 7 days live data"
+          changeType="neutral"
           icon={ClipboardList}
           gradient="linear-gradient(135deg, #06b6d4, #22d3ee)"
         />
         <KPICard
           title="Fraud Alerts"
-          value="3"
-          change="2 under investigation"
-          changeType="negative"
+          value={kpiStats.fraudAlerts}
+          change="Pending > 30 risk score"
+          changeType={kpiStats.fraudAlerts === "0" ? "neutral" : "negative"}
           icon={ShieldAlert}
           gradient="linear-gradient(135deg, #f43f5e, #fb7185)"
         />
@@ -280,28 +345,34 @@ export default function AdminDashboardPage() {
         <div className="glass-card p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Recent Claims</h3>
           <div className="space-y-3">
-            {claims.slice(0, 4).map((claim) => (
-              <div key={claim.id} className="flex items-center justify-between p-3 rounded-xl bg-white/3 hover:bg-white/5 transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">{claim.triggerIcon}</span>
-                  <div>
-                    <p className="text-sm font-medium text-white">{claim.workerName}</p>
-                    <p className="text-xs text-gray-500">{claim.triggerType} · {claim.filedAt}</p>
+            {loadingClaims ? (
+              <p className="text-sm text-gray-400 py-2">Loading recent claims...</p>
+            ) : recentClaims.length === 0 ? (
+              <p className="text-sm text-gray-400 py-2">No recent claims found.</p>
+            ) : (
+              recentClaims.map((claim) => (
+                <div key={claim.id} className="flex items-center justify-between p-3 rounded-xl bg-white/3 hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{claim.trigger_icon || '⚠️'}</span>
+                    <div>
+                      <p className="text-sm font-medium text-white">{claim.worker_profiles?.full_name || "Unknown Worker"}</p>
+                      <p className="text-xs text-gray-500">{claim.trigger_type} · {formatAgo(claim.created_at)}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-white">₹{claim.amount}</p>
+                    <span className={`status-badge text-[10px] px-2 py-1 rounded-full ${
+                      claim.status === "paid" ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20" :
+                      claim.status === "auto-approved" ? "bg-blue-500/15 text-blue-400 border border-blue-500/20" :
+                      claim.status === "pending-review" ? "bg-amber-500/15 text-amber-400 border border-amber-500/20" :
+                      "bg-red-500/15 text-red-400 border border-red-500/20"
+                    }`}>
+                      {claim.status?.replace("-", " ").toUpperCase() || "PENDING"}
+                    </span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-white">₹{claim.amount}</p>
-                  <span className={`status-badge text-[10px] ${
-                    claim.status === "paid" ? "bg-emerald-500/15 text-emerald-400" :
-                    claim.status === "auto-approved" ? "bg-blue-500/15 text-blue-400" :
-                    claim.status === "pending-review" ? "bg-amber-500/15 text-amber-400" :
-                    "bg-red-500/15 text-red-400"
-                  }`}>
-                    {claim.status.replace("-", " ")}
-                  </span>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
