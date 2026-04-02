@@ -283,6 +283,9 @@ export default function WorkerDashboard() {
   const router = useRouter()
   const [data, setData] = useState<WorkerData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [claimStatus, setClaimStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [claimMsg, setClaimMsg] = useState('')
 
   useEffect(() => {
     const fetchData = async () => {
@@ -312,6 +315,40 @@ export default function WorkerDashboard() {
   const handleSignout = async () => {
     await supabase.auth.signOut()
     router.push('/login')
+  }
+
+  const handleQuickClaim = async () => {
+    setSubmitting(true)
+    setClaimStatus('idle')
+    setClaimMsg('')
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setClaimStatus('error')
+      setClaimMsg('User not authenticated')
+      setSubmitting(false)
+      return
+    }
+
+    const payload = {
+      worker_id: user.id,
+      trigger_type: "Heavy Rainfall",
+      trigger_icon: "🌧️",
+      amount: data?.income?.avg_daily_earnings ? Number(data.income.avg_daily_earnings) * 2 : 1500, // 2 days of earnings
+      fraud_score: Math.floor(Math.random() * 40),
+      status: "pending-review"
+    };
+
+    const { error } = await supabase.from("claims").insert([payload]);
+
+    if (error) {
+      setClaimStatus('error')
+      setClaimMsg("Failed to submit claim: " + error.message)
+    } else {
+      setClaimStatus('success')
+      setClaimMsg('Your claim for Heavy Rainfall has been submitted successfully and is pending review!')
+    }
+    setSubmitting(false)
   }
 
   if (loading) return (
@@ -397,7 +434,25 @@ export default function WorkerDashboard() {
               <p style={{ fontSize: 13, fontWeight: 600, color: '#fbbf24', margin: '0 0 2px' }}>Heavy rain warning</p>
               <p style={{ fontSize: 12, color: 'rgba(251,191,36,0.7)', margin: 0 }}>Rainfall 48mm · your zone</p>
             </div>
-            <button style={{ width: '100%', padding: '9px', background: 'linear-gradient(135deg,#f97316,#ea580c)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Submit claim</button>
+            
+            {claimStatus === 'success' ? (
+              <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 10, padding: '10px 14px', color: '#4ade80', fontSize: 12, textAlign: 'center' }}>
+                ✅ {claimMsg}
+              </div>
+            ) : (
+              <>
+                <button 
+                  onClick={handleQuickClaim} 
+                  disabled={submitting} 
+                  style={{ width: '100%', padding: '9px', background: submitting ? 'rgba(255,255,255,0.1)' : 'linear-gradient(135deg,#f97316,#ea580c)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 13, fontWeight: 600, cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+                >
+                  {submitting ? 'Submitting...' : 'Submit claim'}
+                </button>
+                {claimStatus === 'error' && (
+                  <p style={{ color: '#ef4444', fontSize: 12, marginTop: 8, textAlign: 'center' }}>❌ {claimMsg}</p>
+                )}
+              </>
+            )}
           </div>
 
           <div style={{ ...s.card, marginBottom: 0 }}>
