@@ -34,33 +34,115 @@ export default function TriggersPage() {
       const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
       if (!apiKey) throw new Error("Weather API Key not found. Please add NEXT_PUBLIC_WEATHER_API_KEY to your environment.");
 
-      // Fetch dynamic active worker cities from income_data city_zone
-      const { data: incomeData, error: incomeError } = await supabase
-        .from("income_data")
-        .select("city_zone");
-      
-      if (incomeError) throw new Error(`Supabase query failed: ${incomeError.message}`);
-      
-      const rawZones = incomeData?.map(d => d.city_zone).filter(Boolean) || [];
-      const uniqueZones = Array.from(new Set([...rawZones, "Mathura", "Vrindavan"])) as string[];
+      // Fetch dynamic active worker profiles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("worker_profiles")
+        .select("city, state, city_zone");
 
-      if (uniqueZones.length === 0) {
+      if (profilesError) throw new Error(`Supabase query failed: ${profilesError.message}`);
+
+      let allProfiles = profilesData || [];
+
+      if (allProfiles.length === 0) {
          setTriggers([]);
          setLoading(false);
          return;
       }
 
-      const rawTriggers = await Promise.all(
-        uniqueZones.map(async (zoneName) => {
-          const res = await fetch(
-            `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(zoneName)},IN&appid=${apiKey}&units=metric`
-          );
-          if (!res.ok) {
-            console.warn(`Weather check failed for ${zoneName}`);
-            return null;
-          }
-          const data = await res.json();
+      // Group workers by their precise location combination to avoid duplicate logic
+      const uniqueProfilesMap = new Map<string, { profile: any, count: number }>();
+      for (const p of allProfiles) {
+         const key = `${p.city_zone || ''}|${p.city || ''}|${p.state || ''}`;
+         if (!uniqueProfilesMap.has(key)) {
+             uniqueProfilesMap.set(key, { profile: p, count: 0 });
+         }
+         uniqueProfilesMap.get(key)!.count++;
+      }
 
+      const weatherCache = new Map<string, any>();
+      const getWeatherData = async (loc?: string, timeoutMs: number = 2000) => {
+        if (!loc || !loc.trim()) return null;
+        const normalizedLoc = loc.trim();
+        if (weatherCache.has(normalizedLoc)) return weatherCache.get(normalizedLoc);
+        
+        try {
+          const fetchPromise = fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(normalizedLoc)},IN&appid=${apiKey}&units=metric`);
+          
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('timeout')), timeoutMs)
+          );
+
+          // Force a strict countdown; if API doesn't answer within timeoutMs, it throws to catch block
+          const res = await Promise.race([fetchPromise, timeoutPromise]) as Response;
+          
+          if (res && res.ok) {
+            const data = await res.json();
+            weatherCache.set(normalizedLoc, data);
+            return data;
+          }
+        } catch(e) {
+          // Fall through gracefully if timeout is reached or network fails
+        }
+        weatherCache.set(normalizedLoc, null);
+        return null;
+      };
+
+      const resolvedGroups = new Map<string, { count: number, data: any, fullLocation: string }>();
+
+      // Resolve cascading locations: city_zone -> city -> state
+      await Promise.all(Array.from(uniqueProfilesMap.entries()).map(async ([key, { profile, count }]) => {
+        let matchedLoc = null;
+        let matchedData = null;
+
+        // Start countdown timeout limit specifically shorter for highly granular zones (e.g. 5 seconds max)
+        const dataZone = await getWeatherData(profile.city_zone, 5000);
+        if (dataZone) {
+          matchedLoc = profile.city_zone!.trim();
+          matchedData = dataZone;
+        } else {
+          const dataCity = await getWeatherData(profile.city);
+          if (dataCity) {
+            matchedLoc = profile.city!.trim();
+            matchedData = dataCity;
+          } else {
+            const dataState = await getWeatherData(profile.state);
+            if (dataState) {
+              matchedLoc = profile.state!.trim();
+              matchedData = dataState;
+            }
+          }
+        }
+
+        const fullLocation = [profile.city_zone, profile.city, profile.state]
+          .filter(Boolean)
+          .join(", ");
+
+        // Guarantee that the location is added EVEN IF the weather API completely fails
+        // to find the zone, city, or state. No data should be left invisible.
+        if (!matchedData) {
+           matchedData = {
+              main: { temp: 0 },
+              weather: [{ main: "Unknown", description: "Weather API unable to locate region" }],
+              coord: { lat: 0, lon: 0 },
+              rain: {}
+           };
+        }
+        
+        const existing = resolvedGroups.get(key);
+        if (existing) {
+          existing.count += count;
+        } else {
+          resolvedGroups.set(key, { count, data: matchedData, fullLocation });
+        }
+      }));
+
+      if (resolvedGroups.size === 0) {
+         setTriggers([]);
+         setLoading(false);
+         return;
+      }
+
+      const rawTriggers = Array.from(resolvedGroups.entries()).map(([key, { count, data, fullLocation }]) => {
           const temp = data.main.temp;
           const weatherMain = data.weather[0].main.toLowerCase();
           
@@ -78,30 +160,23 @@ export default function TriggersPage() {
             status = "monitoring"; alertType = "Rain Warning"; icon = "🌧️";
           }
 
-          // Fetch affected workers count from Supabase
-          const { count } = await supabase
-            .from("income_data")
-            .select("*", { count: "exact", head: true })
-            .ilike("city_zone", `%${zoneName}%`);
-
           return {
-            id: `trigger-${zoneName.toLowerCase().replace(/\s+/g, '-')}`,
+            id: `trigger-${key.replace(/[^a-zA-Z0-9]/g, '-')}`,
             type: alertType,
             icon,
-            location: `${zoneName}, India`,
+            location: fullLocation,
             status,
             threshold: temp > 35 ? "> 35°C" : "> 10mm/h Rain",
             currentValue: `${temp.toFixed(1)}°C, ${data.weather[0].description}`,
-            affectedWorkers: count || 0,
+            affectedWorkers: count,
             detectedAt: new Date().toLocaleTimeString(),
             lat: data.coord.lat,
             lon: data.coord.lon,
             temp
           };
-        })
-      );
-      
-      const validTriggers = rawTriggers.filter(Boolean) as WeatherTrigger[];
+      });
+
+      const validTriggers = rawTriggers as WeatherTrigger[];
       setTriggers(validTriggers.sort((a,b) => (b.status === "active" ? 1 : 0) - (a.status === "active" ? 1 : 0)));
       setLastRefreshed(new Date());
       setElapsedSeconds(0);

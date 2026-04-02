@@ -15,7 +15,7 @@ const STATES = [
 export default function Step2() {
   const router = useRouter()
   const [form, setForm] = useState({
-    full_name: '', date_of_birth: '', gender: '', city: '', state: '', address: '', pincode: ''
+    full_name: '', date_of_birth: '', gender: '', city: '', city_zone: '', state: '', address: '', pincode: ''
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -28,6 +28,7 @@ export default function Step2() {
     if (!form.date_of_birth) return 'Date of birth is required'
     if (!form.gender) return 'Please select gender'
     if (!form.city.trim()) return 'City is required'
+    if (!form.city_zone.trim()) return 'City zone is required'
     if (!form.state) return 'Please select state'
     const age = (Date.now() - new Date(form.date_of_birth).getTime()) / (1000 * 60 * 60 * 24 * 365)
     if (age < 18) return 'You must be at least 18 years old'
@@ -133,12 +134,18 @@ export default function Step2() {
             value={form.city} onChange={set('city')} />
         </div>
         <div>
-          <label style={labelStyle}>State</label>
-          <select style={inputStyle} value={form.state} onChange={set('state')}>
-            <option value="">Select state</option>
-            {STATES.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+          <label style={labelStyle}>City Zone</label>
+          <input style={inputStyle} placeholder="Andheri West"
+            value={form.city_zone} onChange={set('city_zone')} />
         </div>
+      </div>
+
+      <div style={{ marginBottom: 16 }}>
+        <label style={labelStyle}>State</label>
+        <select style={inputStyle} value={form.state} onChange={set('state')}>
+          <option value="">Select state</option>
+          {STATES.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
       </div>
 
       {/* Address */}

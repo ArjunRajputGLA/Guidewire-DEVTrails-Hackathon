@@ -49,10 +49,10 @@ export default function Step5() {
     const fetchCity = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      const { data } = await supabase.from('worker_profiles').select('city').eq('id', user.id).single()
+      const { data } = await supabase.from('worker_profiles').select('city, city_zone').eq('id', user.id).single()
       if (data?.city) {
         setUserCity(data.city)
-        setForm(f => ({ ...f, city_zone: data.city }))
+        setForm(f => ({ ...f, city_zone: data.city_zone || data.city }))
       }
     }
     fetchCity()
