@@ -197,9 +197,11 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase-browser'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useAuth } from '@/context/AuthContext'
 
 export default function LoginPage() {
   const router = useRouter()
+  const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -208,6 +210,18 @@ export default function LoginPage() {
 
   const handleLogin = async () => {
     if (!email || !password) { setError('Please fill in all fields'); return }
+    
+    // Hardcoded admin login
+    if (email === 'admin@gigshield.com' && password === '123456') {
+      const res = login(email, password)
+      if (res.success) {
+        router.push('/admin/dashboard')
+      } else {
+        setError(res.error || 'Failed to login')
+      }
+      return
+    }
+
     setLoading(true)
     setError('')
 

@@ -21,6 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Pre-seeded users
 const DEFAULT_USERS: { email: string; password: string; name: string; role: "admin" | "worker" }[] = [
   { email: "admin@gigshield.in", password: "admin123", name: "Jatin M.", role: "admin" },
+  { email: "admin@gigshield.com", password: "123456", name: "Admin", role: "admin" },
   { email: "rahul@gigshield.in", password: "worker123", name: "Rahul Yadav", role: "worker" },
 ];
 
@@ -57,7 +58,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = (email: string, password: string) => {
     const users = getStoredUsers();
-    const found = users.find((u) => u.email === email && u.password === password);
+    let found = users.find((u) => u.email === email && u.password === password);
+    
+    // Also check DEFAULT_USERS in case localStorage is missing the updated list
+    if (!found) {
+      found = DEFAULT_USERS.find((u) => u.email === email && u.password === password);
+    }
+    
     if (!found) return { success: false, error: "Invalid email or password" };
 
     const loggedInUser: User = { name: found.name, email: found.email, role: found.role };
