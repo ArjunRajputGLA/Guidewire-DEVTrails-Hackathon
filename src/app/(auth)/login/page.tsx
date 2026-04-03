@@ -213,7 +213,7 @@ export default function LoginPage() {
     
     // Admin login path
     if (role === 'admin' || (email === 'admin@gigshield.com' && password === '123456')) {
-      const res = login(email, password)
+      const res = await login(email, password)
       if (res.success) {
         router.push('/admin/dashboard')
       } else {

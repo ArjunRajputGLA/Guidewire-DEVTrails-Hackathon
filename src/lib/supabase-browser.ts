@@ -17,7 +17,7 @@ if (typeof window !== 'undefined') {
 
   // Ensure stale tokens are swept from local storage if they exist
   supabase.auth.onAuthStateChange((event) => {
-    if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+    if (event === 'SIGNED_OUT') {
       const keys = Object.keys(localStorage);
       keys.forEach((key) => {
         if (key.startsWith('sb-') && key.endsWith('-auth-token')) {

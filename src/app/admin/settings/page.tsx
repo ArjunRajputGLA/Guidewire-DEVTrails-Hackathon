@@ -1,14 +1,30 @@
 "use client";
-import { Bell, Globe, Lock, Palette, Server, User } from "lucide-react";
+import { useState, useRef } from "react";
+import { Bell, Globe, Lock, Palette, Server, User, Camera } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SettingsPage() {
+  const { user, updateProfilePic } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        updateProfilePic(base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const sections = [
     {
       icon: User, title: "Profile", description: "Manage your admin profile and preferences",
       fields: [
-        { label: "Full Name", value: "Jatin M.", type: "text" },
-        { label: "Email", value: "jatin@gigshield.in", type: "email" },
-        { label: "Role", value: "Super Admin", type: "text" },
+        { label: "Email", value: user?.email || "jatin@gigshield.in", type: "email", readonly: true },
+        { label: "Role", value: user?.role === "admin" ? "Super Admin" : "Worker", type: "text", readonly: true },
       ],
     },
     {
@@ -38,13 +54,14 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-4xl">
-      <div>
-        <h2 className="text-2xl font-bold text-white">Settings</h2>
-        <p className="text-sm text-gray-400 mt-1">Manage your GigShield admin configuration</p>
-      </div>
+    <div className="flex justify-center">
+      <div className="space-y-6 animate-fade-in w-full max-w-4xl">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Settings</h2>
+          <p className="text-sm text-gray-400 mt-1">Manage your GigShield admin configuration</p>
+        </div>
 
-      {sections.map((section, i) => {
+        {sections.map((section, i) => {
         const Icon = section.icon;
         return (
           <div key={section.title} className="glass-card p-6"
@@ -58,6 +75,50 @@ export default function SettingsPage() {
                 <p className="text-xs text-gray-500">{section.description}</p>
               </div>
             </div>
+
+            {section.title === "Profile" && (
+              <div className="flex items-center gap-6 mb-8 pb-8 border-b border-white/5">
+                <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                  <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-indigo-500/30 bg-white/5 flex items-center justify-center">
+                    {user?.profilePic ? (
+                      <img src={user.profilePic} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-3xl font-bold text-white/50">{user?.name?.charAt(0).toUpperCase() || 'A'}</span>
+                    )}
+                  </div>
+                  <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Camera className="w-6 h-6 text-white" />
+                  </div>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*" 
+                    onChange={handleFileChange}
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white mb-2">Profile Picture</p>
+                  <p className="text-xs text-gray-400 max-w-sm mb-3">Upload a new avatar. Larger images will be resized automatically. Maximum upload size is 2MB.</p>
+                  <div className="flex gap-3">
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-xs font-medium px-4 py-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 rounded-lg transition-colors border border-indigo-500/20"
+                    >
+                      Update
+                    </button>
+                    {user?.profilePic && (
+                      <button 
+                        onClick={() => updateProfilePic('')}
+                        className="text-xs font-medium px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors border border-red-500/20"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-4">
               {section.fields.map((field) => (
@@ -73,9 +134,10 @@ export default function SettingsPage() {
                     </button>
                   ) : (
                     <input
-                      type="text"
+                      type={field.type === "password" ? "password" : "text"}
                       defaultValue={String(field.value)}
-                      className="w-72 px-4 py-2 rounded-xl text-sm bg-white/5 border border-white/10 text-gray-300 focus:outline-none focus:border-indigo-500/50 transition-all"
+                      readOnly={(field as any).readonly}
+                      className={`w-72 px-4 py-2 rounded-xl text-sm bg-white/5 border border-white/10 text-gray-300 focus:outline-none focus:border-indigo-500/50 transition-all ${(field as any).readonly ? 'opacity-60 cursor-not-allowed' : ''}`}
                     />
                   )}
                 </div>
@@ -92,6 +154,7 @@ export default function SettingsPage() {
           Save Changes
         </button>
       </div>
+    </div>
     </div>
   );
 }

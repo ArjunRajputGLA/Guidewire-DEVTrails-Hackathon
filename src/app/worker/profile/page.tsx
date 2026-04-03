@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from '@/lib/supabase-browser';
-import { User, Phone, MapPin, Briefcase, Calendar, IndianRupee } from "lucide-react";
+import { User, Phone, MapPin, Briefcase, Calendar, IndianRupee, Camera } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 interface ProfileData {
   mobile: string;
@@ -16,8 +17,10 @@ interface ProfileData {
 }
 
 export default function ProfilePage() {
+  const { user: authUser, updateProfilePic } = useAuth();
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -75,6 +78,17 @@ export default function ProfilePage() {
       ]
     : [];
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updateProfilePic(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-2xl animate-fade-in">
       <div>
@@ -83,12 +97,27 @@ export default function ProfilePage() {
       </div>
 
       {/* Avatar Card */}
-      <div className="glass-card p-8 flex flex-col items-center text-center border border-white/5 bg-white/5 rounded-2xl">
-        <div
-          className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-4"
-          style={{ background: "linear-gradient(135deg, #3b82f6, #06b6d4)" }}
+      <div className="glass-card p-8 flex flex-col items-center text-center border border-white/5 bg-white/5 rounded-2xl relative">
+        <input 
+          type="file" 
+          accept="image/*" 
+          className="hidden" 
+          ref={fileInputRef} 
+          onChange={handleImageUpload}
+        />
+        <div 
+          className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold text-white mb-4 relative group cursor-pointer overflow-hidden border-2 border-white/10 hover:border-blue-500/50 transition-colors shadow-lg"
+          style={{ background: authUser?.profilePic ? "none" : "linear-gradient(135deg, #3b82f6, #06b6d4)" }}
+          onClick={() => fileInputRef.current?.click()}
         >
-          {data?.fullName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "W"}
+          {authUser?.profilePic ? (
+            <img src={authUser.profilePic} alt="Profile" className="w-full h-full object-cover" />
+          ) : (
+            data?.fullName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "W"
+          )}
+          <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center transition-all">
+            <Camera className="w-8 h-8 text-white/90" />
+          </div>
         </div>
         <h2 className="text-xl font-bold text-white">{data?.fullName}</h2>
         <p className="text-sm text-gray-500">{data?.email}</p>

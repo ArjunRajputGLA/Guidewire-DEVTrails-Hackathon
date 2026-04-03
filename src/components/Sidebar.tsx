@@ -97,13 +97,22 @@ export default function Sidebar({ isExpanded = true, setIsExpanded }: { isExpand
       {/* Footer */}
       <div className="px-4 py-4 border-t border-white/5 space-y-3">
         <div className={`flex items-center ${isExpanded ? "gap-3 px-3" : "justify-center"}`}>
-          <div
-            className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-xs font-bold text-white"
-            style={{ background: "linear-gradient(135deg, #6366f1, #ec4899)" }}
-            title={!isExpanded ? user?.name || "Admin" : undefined}
-          >
-            {user?.name?.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "AD"}
-          </div>
+          {user?.profilePic ? (
+            <img
+              src={user.profilePic}
+              alt="Profile"
+              className="w-8 h-8 shrink-0 rounded-full object-cover border border-white/10"
+              title={!isExpanded ? user?.name || "Admin" : undefined}
+            />
+          ) : (
+            <div
+              className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-xs font-bold text-white"
+              style={{ background: "linear-gradient(135deg, #6366f1, #ec4899)" }}
+              title={!isExpanded ? user?.name || "Admin" : undefined}
+            >
+              {user?.name?.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "AD"}
+            </div>
+          )}
           {isExpanded && (
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-gray-300 truncate">{user?.name || "Admin"}</p>
