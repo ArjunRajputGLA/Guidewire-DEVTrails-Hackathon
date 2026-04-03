@@ -12,6 +12,7 @@ interface ProfileData {
   status: string;
   fullName: string;
   email: string;
+  activePolicies: any[];
 }
 
 export default function ProfilePage() {
@@ -27,15 +28,17 @@ export default function ProfilePage() {
         return;
       }
 
-      const [profileRes, gigRes, incomeRes] = await Promise.all([
+      const [profileRes, gigRes, incomeRes, policiesRes] = await Promise.all([
         supabase.from('worker_profiles').select('*').eq('id', user.id).single(),
         supabase.from('gig_profiles').select('*').eq('id', user.id).maybeSingle(),
         supabase.from('income_data').select('*').eq('worker_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('worker_policies').select('*, insurance_products(*)').eq('worker_id', user.id).eq('status', 'active'),
       ]);
 
       const p = profileRes.data || {};
       const g = gigRes.data || {};
       const i = incomeRes.data || {};
+      const activePolicies = policiesRes.data || [];
 
       setData({
         mobile: p.mobile || "N/A",
@@ -45,7 +48,8 @@ export default function ProfilePage() {
         dailyEarnings: i.avg_daily_earnings ? `₹${i.avg_daily_earnings}` : "N/A",
         status: p.onboarding_complete ? "active" : "pending",
         fullName: p.full_name || "Worker",
-        email: user.email || ""
+        email: user.email || "",
+        activePolicies: activePolicies,
       });
       
       setLoading(false);
@@ -111,6 +115,33 @@ export default function ProfilePage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Active Policies */}
+      {data?.activePolicies && data.activePolicies.length > 0 && (
+        <div className="glass-card p-6 border border-white/5 bg-white/5 rounded-2xl">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <User className="w-5 h-5 text-emerald-400" />
+            Active Policies
+          </h3>
+          <div className="space-y-3">
+             {data.activePolicies.map((p) => {
+               const product = p.insurance_products;
+               if (!product) return null;
+               return (
+                 <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+                   <div>
+                     <p className="text-sm font-medium text-white">{product.name}</p>
+                     <p className="text-xs text-gray-400">{product.tier === 'Add-on' ? 'Add-on Coverage' : 'Base Plan'}</p>
+                   </div>
+                   <span className="text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded">
+                     Active
+                   </span>
+                 </div>
+               )
+             })}
           </div>
         </div>
       )}

@@ -9,12 +9,14 @@ import {
   User,
   Shield,
   LogOut,
+  IndianRupee,
 } from "lucide-react";
 
 const navItems = [
   { href: "/worker/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/worker/my-policy", label: "My Policy", icon: ShieldCheck },
   { href: "/worker/my-claims", label: "My Claims", icon: ClipboardList },
+  { href: "/worker/weekly-payout", label: "Weekly Payout", icon: IndianRupee },
   { href: "/worker/profile", label: "Profile", icon: User },
 ];
 

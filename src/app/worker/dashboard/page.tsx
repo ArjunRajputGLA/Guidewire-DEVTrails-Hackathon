@@ -8,6 +8,7 @@ interface WorkerData {
   income:  Record<string, unknown> | null
   gig:     Record<string, unknown> | null
   payment: Record<string, unknown> | null
+  policies: any[]
 }
 
 const PREMIUM_MAP = { starter: 29, standard: 49, pro: 79 }
@@ -27,11 +28,12 @@ export default function WorkerDashboard() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const [profile, income, gig, payment] = await Promise.all([
+      const [profile, income, gig, payment, policiesRes] = await Promise.all([
         supabase.from('worker_profiles').select('*').eq('id', user.id).single(),
         supabase.from('income_data').select('*').eq('worker_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('gig_profiles').select('*').eq('id', user.id).maybeSingle(),
         supabase.from('payment_info').select('*').eq('worker_id', user.id).maybeSingle(),
+        supabase.from('worker_policies').select('*, insurance_products(*)').eq('worker_id', user.id).eq('status', 'active'),
       ])
 
       setData({
@@ -39,6 +41,7 @@ export default function WorkerDashboard() {
         income:  income.data  as Record<string, unknown> | null,
         gig:     gig.data     as Record<string, unknown> | null,
         payment: payment.data as Record<string, unknown> | null,
+        policies: policiesRes.data || [],
       })
       setLoading(false)
     }
@@ -85,9 +88,26 @@ export default function WorkerDashboard() {
     </div>
   )
 
-  const tier: Tier = isTier(data?.income?.income_tier) ? data!.income!.income_tier as Tier : 'standard'
-  const premium   = PREMIUM_MAP[tier]
-  const maxPayout = PAYOUT_MAP[tier]
+  const policies = data?.policies || []
+  let premium = 0
+  let maxPayout = 0
+  let primaryTier = 'standard'
+  
+  if (policies.length > 0) {
+    premium = policies.reduce((sum, p) => sum + (Number(p.insurance_products?.base_premium) || 0), 0)
+    maxPayout = policies.reduce((sum, p) => sum + (Number(p.insurance_products?.max_payout) || 0), 0)
+    const basePolicy = policies.find(p => ['Starter', 'Standard', 'Pro'].includes(p.insurance_products?.tier))
+    if (basePolicy) {
+      primaryTier = basePolicy.insurance_products.tier.toLowerCase()
+    }
+  } else if (data?.income?.income_tier) {
+    primaryTier = data.income.income_tier as string
+    const fallbackTier = isTier(primaryTier) ? primaryTier as Tier : 'standard'
+    premium = PREMIUM_MAP[fallbackTier]
+    maxPayout = PAYOUT_MAP[fallbackTier]
+  }
+
+  const tier = primaryTier
   const firstName = typeof data?.profile?.full_name === 'string' ? data.profile.full_name.split(' ')[0] : 'Partner'
   const city      = typeof data?.profile?.city === 'string' ? data.profile.city : ''
   const platform  = typeof data?.gig?.platform === 'string' ? data.gig.platform.charAt(0).toUpperCase() + data.gig.platform.slice(1) : 'Delivery'

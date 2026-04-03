@@ -208,6 +208,11 @@ export default function AdminDashboardPage() {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       
+      const { count: policiesCount } = await supabase
+        .from("worker_policies")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "active");
+      
       const { count: claimsCount } = await supabase
         .from("claims")
         .select("*", { count: "exact", head: true })
@@ -221,7 +226,7 @@ export default function AdminDashboardPage() {
         
       setKpiStats({
         workers: workersCount ? workersCount.toString() : "0",
-        policies: workersCount ? workersCount.toString() : "0", // 1 policy per onboarded worker
+        policies: policiesCount ? policiesCount.toString() : "0",
         claimsThisWeek: claimsCount ? claimsCount.toString() : "0",
         fraudAlerts: fraudCount ? fraudCount.toString() : "0"
       });
@@ -329,7 +334,7 @@ export default function AdminDashboardPage() {
                   borderRadius: "12px",
                   color: "#f3f4f6",
                 }}
-                formatter={(value: number) => [`₹${value.toLocaleString()}`, undefined]}
+                formatter={(value: any) => [`₹${Number(value).toLocaleString()}`, undefined]}
               />
               <Legend wrapperStyle={{ color: "#9ca3af" }} />
               <Bar dataKey="revenue" name="Premium Revenue" fill="#6366f1" radius={[4, 4, 0, 0]} />

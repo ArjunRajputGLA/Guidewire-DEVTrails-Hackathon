@@ -15,6 +15,7 @@ export interface Worker {
   dailyAvgEarnings: number;
   status: "active" | "inactive" | "suspended";
   lastActive: string;
+  coverageText: string;
 }
 
 export default function WorkersPage() {
@@ -45,7 +46,7 @@ export default function WorkersPage() {
       const [workersRes, statusesRes] = await Promise.all([
         supabase
           .from("worker_profiles")
-          .select("id, full_name, mobile, city, city_zone, updated_at, gig_profiles(platform, tenure_months), income_data!income_data_worker_id_fkey(avg_daily_earnings)")
+          .select("id, full_name, mobile, city, city_zone, updated_at, gig_profiles(platform, tenure_months), income_data!income_data_worker_id_fkey(avg_daily_earnings), worker_policies(status, insurance_products(tier))")
           .eq("onboarding_complete", true),
         getWorkersStatuses()
       ]);
@@ -87,6 +88,17 @@ export default function WorkersPage() {
             earningsValue = incomeData?.avg_daily_earnings || 0;
           }
 
+          let coverageText = "None";
+          if (w.worker_policies && Array.isArray(w.worker_policies)) {
+            const activePols = w.worker_policies.filter((p: any) => p.status === 'active' && p.insurance_products);
+            if (activePols.length > 0) {
+               const basePln = activePols.find((p: any) => ['Starter', 'Standard', 'Pro'].includes(p.insurance_products?.tier));
+               const baseTier = basePln ? basePln.insurance_products.tier : activePols[0].insurance_products?.tier || 'Custom';
+               const addOnCount = activePols.length - (basePln ? 1 : 0);
+               coverageText = `${baseTier}${addOnCount > 0 ? ` + ${addOnCount} Add-on${addOnCount > 1 ? 's': ''}` : ''}`;
+            }
+          }
+
           return {
             id: w.id,
             name: w.full_name || "Unknown",
@@ -98,6 +110,7 @@ export default function WorkersPage() {
             dailyAvgEarnings: earningsValue,
             status: statuses[w.id] || "active",
             lastActive: w.updated_at ? new Date(w.updated_at).toLocaleDateString() : "Just now",
+            coverageText,
           };
         });
         setWorkers(formattedWorkers.reverse());
@@ -265,7 +278,7 @@ export default function WorkersPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/5">
-                {["Worker", "Platform", "City / Zone", "Tenure", "Avg. Earnings", "Status", "Last Active", "Actions"].map((h) => (
+                {["Worker", "Platform", "City / Zone", "Avg. Earnings", "Coverage", "Status", "Last Active", "Actions"].map((h) => (
                   <th key={h} className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -291,8 +304,12 @@ export default function WorkersPage() {
                     <p className="text-sm text-white">{w.city}</p>
                     <p className="text-xs text-gray-500">{w.zone}</p>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-300">{w.tenure} months</td>
-                  <td className="px-6 py-4 text-sm font-medium text-white">₹{w.dailyAvgEarnings}/day</td>
+                  <td className="px-6 py-4 text-sm font-medium text-emerald-400">₹{w.dailyAvgEarnings}/day</td>
+                  <td className="px-6 py-4">
+                    <span className={`status-badge ${w.coverageText === 'None' ? 'bg-gray-500/10 text-gray-400 border border-gray-500/20' : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'}`}>
+                      {w.coverageText}
+                    </span>
+                  </td>
                   <td className="px-6 py-4">
                     <div className="relative inline-block">
                       <select

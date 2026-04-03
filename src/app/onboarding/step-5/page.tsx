@@ -67,6 +67,19 @@ export default function Step5() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
+    const { data: product, error: fetchError } = await supabase
+      .from('insurance_products')
+      .select('id, base_premium, max_payout')
+      .ilike('tier', tier)
+      .limit(1)
+      .single()
+
+    if (fetchError || !product) {
+      setError('Could not find a matching insurance policy for your tier. Make sure the database is seeded.')
+      setLoading(false)
+      return
+    }
+
     const { error: dbError } = await supabase.from('income_data').insert({
       worker_id: user.id,
       avg_daily_earnings: daily,
@@ -76,9 +89,20 @@ export default function Step5() {
       city_zone: form.city_zone,
       zone_risk_level: riskLevel as any,
       income_tier: tier as any,
+      base_premium: product.base_premium,
+      final_premium: product.base_premium,
+      max_weekly_payout: product.max_payout,
     })
 
     if (dbError) { setError(dbError.message); setLoading(false); return }
+
+    const { error: linkError } = await supabase.from('worker_policies').insert({
+      worker_id: user.id,
+      policy_id: product.id,
+      status: 'active'
+    })
+
+    if (linkError) { setError(linkError.message); setLoading(false); return }
     await supabase.from('worker_profiles').update({ onboarding_step: 5, onboarding_complete: true }).eq('id', user.id)
     router.push('/worker/dashboard')
   }

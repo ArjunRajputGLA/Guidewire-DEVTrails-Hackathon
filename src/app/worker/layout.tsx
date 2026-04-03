@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase-browser'
-import { LayoutDashboard, FileText, ShieldCheck, User, LogOut, Bell } from 'lucide-react'
+import { LayoutDashboard, FileText, ShieldCheck, User, LogOut, Bell, IndianRupee } from 'lucide-react'
 
 export default function WorkerLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -62,6 +62,7 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
     { name: 'Dashboard', path: '/worker/dashboard', icon: LayoutDashboard },
     { name: 'My Claims', path: '/worker/my-claims', icon: FileText },
     { name: 'My Policies', path: '/worker/my-policy', icon: ShieldCheck },
+    { name: 'Weekly Payout', path: '/worker/weekly-payout', icon: IndianRupee },
     { name: 'Profile', path: '/worker/profile', icon: User },
   ]
 
