@@ -1,8 +1,19 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase-browser";
 import { ClipboardList, Plus, AlertCircle, RefreshCw, CheckCircle, X } from "lucide-react";
-import { createBrowserClient } from "@supabase/ssr";
+
+// The schema has trigger_type, trigger_icon, amount, status, created_at, id
+interface Claim {
+  id: string;
+  worker_id: string;
+  trigger_type: string;
+  trigger_icon: string;
+  amount: number;
+  fraud_score: number;
+  status: string;
+  created_at: string;
+}
 
 const TRIGGER_OPTIONS = [
   { type: "Heavy Rainfall", icon: "🌧️" },
@@ -28,8 +39,7 @@ function formatRelativeTime(dateString: string) {
 }
 
 export default function MyClaimsPage() {
-  const { user } = useAuth();
-  const [claims, setClaims] = useState<any[]>([]);
+  const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   
@@ -39,73 +49,51 @@ export default function MyClaimsPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
   const fetchMyClaims = async () => {
-    if (!user?.name) return;
     setLoading(true);
     
-    // Auto-map current user's full_name to their worker profile
-    let { data: workers } = await supabase
-      .from("worker_profiles")
-      .select("id")
-      .eq("full_name", user.name)
-      .limit(1);
-
-    if (workers && workers.length > 0) {
-      const workerId = workers[0].id;
-      const { data: userClaims } = await supabase
+    // Use getSession() instead of getUser() to avoid "lock:sb-... stolen" 
+    // warning caused by simultaneous token refresh checks
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    
+    if (user) {
+      const { data: userClaims, error } = await supabase
         .from("claims")
         .select("*")
-        .eq("worker_id", workerId)
+        .eq("worker_id", user.id)
         .order("created_at", { ascending: false });
-      
-      setClaims(userClaims || []);
-    } else {
-      setClaims([]);
+        
+      if (!error && userClaims) {
+        setClaims(userClaims as Claim[]);
+      } else {
+        setClaims([]);
+      }
     }
     setLoading(false);
   };
 
   useEffect(() => {
     fetchMyClaims();
-  }, [user]);
+  }, []);
 
   const handleSubmitClaim = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
-    if (!user?.name) {
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    if (!user) {
       setErrorMsg("You must be logged in.");
       return;
     }
     
     setSubmitting(true);
-    
-    let { data: workers } = await supabase
-      .from("worker_profiles")
-      .select("id")
-      .eq("full_name", user.name)
-      .limit(1);
 
-    // Fallback if matching name isn't found
-    if (!workers || workers.length === 0) {
-      const { data: anyWorker } = await supabase.from("worker_profiles").select("id").limit(1);
-      if (anyWorker && anyWorker.length > 0) workers = anyWorker;
-      else {
-         setErrorMsg("No worker profile found. Please complete onboarding first.");
-         setSubmitting(false);
-         return;
-      }
-    }
-
-    const workerId = workers[0].id;
     const selectedTrigger = TRIGGER_OPTIONS.find(t => t.type === triggerType);
 
     const payload = {
-      worker_id: workerId,
+      worker_id: user.id,
       trigger_type: selectedTrigger?.type || triggerType,
       trigger_icon: selectedTrigger?.icon || "⚠️",
       amount: parseFloat(amount) || 1000,
@@ -142,10 +130,10 @@ export default function MyClaimsPage() {
         <div className="flex gap-3">
           <button 
             onClick={fetchMyClaims}
-            className="glass-button px-4 py-2 flex items-center justify-center gap-2"
+            className="px-4 py-2 flex items-center justify-center gap-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg transition-colors"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-400' : 'text-gray-400'}`} />
-            <span className="text-sm font-medium text-white hidden sm:inline">Refresh</span>
+            <span className="text-sm font-medium hidden sm:inline">Refresh</span>
           </button>
           <button 
             onClick={() => {
@@ -153,7 +141,7 @@ export default function MyClaimsPage() {
               if (successMsg) setSuccessMsg("");
               if (errorMsg) setErrorMsg("");
             }}
-            className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+            className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors border border-indigo-400/50"
           >
             <Plus className="w-4 h-4" />
             <span className="text-sm font-medium hidden sm:inline">New Claim</span>
@@ -162,7 +150,7 @@ export default function MyClaimsPage() {
       </div>
 
       {successMsg && (
-        <div className="p-4 bg-emerald-500/10 border border-emerald-500/50 rounded-xl flex items-start justify-between gap-3 animate-fade-in shadow-lg shadow-emerald-500/5">
+        <div className="p-4 bg-emerald-500/10 border border-emerald-500/50 rounded-xl flex items-start justify-between gap-3 shadow-lg shadow-emerald-500/5">
           <div className="flex items-center gap-3 text-emerald-400">
             <CheckCircle className="w-5 h-5 flex-shrink-0" />
             <p className="text-sm font-medium">{successMsg}</p>
@@ -174,7 +162,7 @@ export default function MyClaimsPage() {
       )}
 
       {showForm && (
-        <div className="glass-card p-6 border border-indigo-500/30">
+        <div className="p-6 border border-indigo-500/30 bg-indigo-500/5 rounded-2xl">
           <h2 className="text-lg font-semibold text-white mb-4">Submit a New Claim</h2>
           <form onSubmit={handleSubmitClaim} className="space-y-4">
             {errorMsg && (
@@ -190,7 +178,7 @@ export default function MyClaimsPage() {
                 <select 
                   value={triggerType}
                   onChange={(e: any) => setTriggerType(e.target.value)}
-                  className="w-full bg-gray-900/50 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
                 >
                   {TRIGGER_OPTIONS.map((opt) => (
                     <option key={opt.type} value={opt.type}>{opt.icon} {opt.type}</option>
@@ -206,7 +194,7 @@ export default function MyClaimsPage() {
                   required
                   value={amount}
                   onChange={(e: any) => setAmount(e.target.value)}
-                  className="w-full bg-gray-900/50 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 placeholder:text-gray-600"
+                  className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 placeholder:text-gray-600"
                   placeholder="e.g. 1500"
                 />
               </div>
@@ -216,14 +204,14 @@ export default function MyClaimsPage() {
               <button 
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors border border-transparent"
               >
                 Cancel
               </button>
               <button 
                 type="submit"
                 disabled={submitting}
-                className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors border border-indigo-400/50"
               >
                 {submitting ? "Submitting..." : "Submit Claim"}
               </button>
@@ -233,12 +221,12 @@ export default function MyClaimsPage() {
       )}
 
       {loading ? (
-        <div className="glass-card p-8 text-center border border-gray-800/50">
+        <div className="p-8 text-center bg-white/5 border border-white/5 rounded-2xl">
           <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin mx-auto mb-4" />
           <p className="text-gray-400 text-sm">Loading your claims...</p>
         </div>
       ) : (!claims || claims.length === 0) ? (
-        <div className="glass-card p-12 text-center border-t border-gray-800/50">
+        <div className="p-12 text-center bg-white/5 border border-white/5 rounded-2xl">
           <div className="w-16 h-16 bg-gray-900/50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-800">
             <ClipboardList className="w-8 h-8 text-gray-500" />
           </div>
@@ -252,12 +240,12 @@ export default function MyClaimsPage() {
           {claims.map((claim, index) => (
             <div
               key={claim.id}
-              className="glass-card p-5 animate-fade-in border border-gray-800/50"
+              className="p-5 bg-white/5 animate-fade-in border border-white/5 rounded-2xl"
               style={{ animationDelay: `${index * 80}ms` }}
             >
               <div className="flex flex-col md:flex-row items-start justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gray-900/80 rounded-xl border border-gray-800 flex items-center justify-center text-2xl shadow-inner">
+                  <div className="w-12 h-12 bg-gray-900 rounded-xl border border-gray-800 flex items-center justify-center text-2xl shadow-inner">
                     {claim.trigger_icon || '⚠️'}
                   </div>
                   <div>
@@ -272,22 +260,22 @@ export default function MyClaimsPage() {
                 <div className="text-left md:text-right w-full md:w-auto">
                   <p className="text-lg font-bold text-white mb-1">₹{claim.amount}</p>
                   <span
-                    className={`status-badge text-[10px] px-2 py-1 rounded-full ${
+                    className={`text-[10px] px-2 py-1 rounded-full uppercase tracking-wider font-semibold border ${
                       claim.status === "paid"
-                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
+                        ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20"
                         : claim.status === "auto-approved"
-                        ? "bg-blue-500/15 text-blue-400 border border-blue-500/20"
+                        ? "bg-blue-500/15 text-blue-400 border-blue-500/20"
                         : claim.status === "pending-review"
-                        ? "bg-amber-500/15 text-amber-400 border border-amber-500/20"
-                        : "bg-red-500/15 text-red-400 border border-red-500/20"
+                        ? "bg-amber-500/15 text-amber-400 border-amber-500/20"
+                        : "bg-red-500/15 text-red-400 border-red-500/20"
                     }`}
                   >
-                    {claim.status?.replace("-", " ").toUpperCase() || "PENDING"}
+                    {claim.status?.replace("-", " ") || "PENDING"}
                   </span>
                 </div>
               </div>
 
-               <div className="mt-6 pt-4 border-t border-gray-800/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+               <div className="mt-6 pt-4 border-t border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex items-center gap-2 w-full md:w-3/4 overflow-x-auto pb-2 md:pb-0">
                   {["Filed", "Reviewed", "Approved", "Paid"].map((step, i) => {
                     const stepsCompleted =
@@ -320,13 +308,13 @@ export default function MyClaimsPage() {
                   })}
                 </div>
                 {claim.status === "pending-review" && (
-                   <p className="text-xs text-amber-400/80 bg-amber-500/10 px-2 py-1 rounded">Under review</p>
+                   <p className="text-xs text-amber-400/80 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">Under review</p>
                 )}
                 {claim.status === "rejected" && (
-                   <p className="text-xs text-red-400/80 bg-red-500/10 px-2 py-1 rounded">Declined</p>
+                   <p className="text-xs text-red-400/80 bg-red-500/10 px-2 py-1 rounded border border-red-500/20">Declined</p>
                 )}
                 {(claim.status === "paid" || claim.status === "auto-approved") && (
-                   <p className="text-xs text-emerald-400/80 bg-emerald-500/10 px-2 py-1 rounded">Paid out</p>
+                   <p className="text-xs text-emerald-400/80 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">Paid out</p>
                 )}
               </div>
             </div>
