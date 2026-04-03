@@ -71,10 +71,10 @@ export default function Step1() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setError('Session expired. Please sign up again.'); setLoading(false); return }
 
+    // Instead of update, we upsert since the profile is created at this step now
     await supabase
       .from('worker_profiles')
-      .update({ mobile: `+91${mobile.replace(/\D/g, '')}`, mobile_verified: true, onboarding_step: 2 })
-      .eq('id', user.id)
+      .upsert({ id: user.id, mobile: `+91${mobile.replace(/\D/g, '')}`, mobile_verified: true, onboarding_step: 2 })
 
     router.push('/onboarding/step-2')
   }

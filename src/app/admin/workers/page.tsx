@@ -1,8 +1,8 @@
 "use client";
-import { Search, Filter, UserPlus, Loader2, Plus, X, RefreshCw } from "lucide-react";
+import { Search, Filter, UserPlus, Loader2, Plus, X, RefreshCw, Trash2, MoreVertical } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase-browser";
-import { createWorkerProfile } from "./actions";
+import { createWorkerProfile, getWorkersStatuses, updateWorkerStatus, deleteWorkerRecord } from "./actions";
 
 export interface Worker {
   id: string;
@@ -40,17 +40,23 @@ export default function WorkersPage() {
   const fetchWorkers = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("worker_profiles")
-        .select("id, full_name, mobile, city, city_zone, updated_at, gig_profiles(platform, tenure_months), income_data!income_data_worker_id_fkey(avg_daily_earnings)");
+      const [workersRes, statusesRes] = await Promise.all([
+        supabase
+          .from("worker_profiles")
+          .select("id, full_name, mobile, city, city_zone, updated_at, gig_profiles(platform, tenure_months), income_data!income_data_worker_id_fkey(avg_daily_earnings)")
+          .eq("onboarding_complete", true),
+        getWorkersStatuses()
+      ]);
 
-      if (error) {
-        console.error("Error fetching workers details:", JSON.stringify(error, null, 2), error);
+      if (workersRes.error) {
+        console.error("Error fetching workers details:", JSON.stringify(workersRes.error, null, 2), workersRes.error);
         return;
       }
 
-      if (data) {
-        const formattedWorkers: Worker[] = data.map((w: any) => {
+      if (workersRes.data) {
+        const statuses = statusesRes.success && statusesRes.statuses ? statusesRes.statuses : {};
+
+        const formattedWorkers: Worker[] = workersRes.data.map((w: any) => {
           let platformValue = "N/A";
           let tenureValue = 0;
           let earningsValue = 0;
@@ -88,7 +94,7 @@ export default function WorkersPage() {
             zone: w.city_zone || "-",
             tenure: tenureValue,
             dailyAvgEarnings: earningsValue,
-            status: "active",
+            status: statuses[w.id] || "active",
             lastActive: w.updated_at ? new Date(w.updated_at).toLocaleDateString() : "Just now",
           };
         });
@@ -129,6 +135,36 @@ export default function WorkersPage() {
       alert(err?.message || "Failed to add worker. See console.");
     } finally {
       setAdding(false);
+    }
+  };
+
+  const handleUpdateStatus = async (id: string, newStatus: "active" | "inactive" | "suspended") => {
+    try {
+      // Optimistically update UI
+      setWorkers(workers.map(w => w.id === id ? { ...w, status: newStatus } : w));
+      const res = await updateWorkerStatus(id, newStatus);
+      if (!res.success) {
+        throw new Error(res.message);
+      }
+    } catch (err: any) {
+      alert(err?.message || "Failed to update status.");
+      fetchWorkers(); // Revert on failure
+    }
+  };
+
+  const handleDeleteWorker = async (id: string) => {
+    if (!confirm("Are you sure you want to permanently delete this worker and all associated records?")) return;
+    try {
+      const originalWorkers = [...workers];
+      setWorkers(workers.filter(w => w.id !== id));
+      const res = await deleteWorkerRecord(id);
+      if (!res.success) {
+        setWorkers(originalWorkers);
+        throw new Error(res.message);
+      }
+    } catch (err: any) {
+      alert(err?.message || "Failed to delete worker.");
+      fetchWorkers(); // Revert on failure
     }
   };
 
@@ -218,7 +254,7 @@ export default function WorkersPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/5">
-                {["Worker", "Platform", "City / Zone", "Tenure", "Avg. Earnings", "Status", "Last Active"].map((h) => (
+                {["Worker", "Platform", "City / Zone", "Tenure", "Avg. Earnings", "Status", "Last Active", "Actions"].map((h) => (
                   <th key={h} className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -247,9 +283,26 @@ export default function WorkersPage() {
                   <td className="px-6 py-4 text-sm text-gray-300">{w.tenure} months</td>
                   <td className="px-6 py-4 text-sm font-medium text-white">₹{w.dailyAvgEarnings}/day</td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-[11px] font-medium ${statusColor(w.status)}`}>{w.status}</span>
+                    <select
+                      value={w.status}
+                      onChange={(e) => handleUpdateStatus(w.id, e.target.value as any)}
+                      className={`px-2 py-1 rounded-full text-[11px] font-medium appearance-none cursor-pointer border-0 outline-none ${statusColor(w.status)}`}
+                    >
+                      <option value="active" className="bg-gray-900 text-emerald-400">Active</option>
+                      <option value="inactive" className="bg-gray-900 text-amber-500">Inactive</option>
+                      <option value="suspended" className="bg-gray-900 text-red-500">Suspended</option>
+                    </select>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-400">{w.lastActive}</td>
+                  <td className="px-6 py-4">
+                    <button 
+                      onClick={() => handleDeleteWorker(w.id)}
+                      className="p-2 text-gray-500 hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors"
+                      title="Permanently Delete Worker"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -245,12 +245,12 @@ export default function SignupPage() {
     if (authError) { setError(authError.message); setLoading(false); return }
 
     if (data.user) {
-      const { error: profileError } = await supabase
-        .from('worker_profiles')
-        .insert({ id: data.user.id, onboarding_step: 1 })
-      if (profileError && profileError.code !== '23505') {
-        console.error('Profile creation error:', profileError)
-      }
+//      const { error: profileError } = await supabase
+//        .from('worker_profiles')
+//        .insert({ id: data.user.id, onboarding_step: 1 })
+//      if (profileError && profileError.code !== '23505') {
+//        console.error('Profile creation error:', profileError)
+//      }
       setSuccess(true)
     }
     setLoading(false)
