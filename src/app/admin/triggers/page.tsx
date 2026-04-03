@@ -52,7 +52,13 @@ export default function TriggersPage() {
       // Group workers by their precise location combination to avoid duplicate logic
       const uniqueProfilesMap = new Map<string, { profile: any, count: number }>();
       for (const p of allProfiles) {
+         const isLocationEmpty = !p.city_zone?.trim() && !p.city?.trim() && !p.state?.trim();
+         
+         // Skip profiles that have absolutely no location data defined
+         if (isLocationEmpty) continue;
+
          const key = `${p.city_zone || ''}|${p.city || ''}|${p.state || ''}`;
+
          if (!uniqueProfilesMap.has(key)) {
              uniqueProfilesMap.set(key, { profile: p, count: 0 });
          }
