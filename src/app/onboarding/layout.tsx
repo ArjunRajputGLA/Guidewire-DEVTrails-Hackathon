@@ -1,5 +1,6 @@
 // app/onboarding/layout.tsx
 'use client'
+import React from 'react'
 import { usePathname } from 'next/navigation'
 
 const STEPS = [
@@ -196,8 +197,8 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
       }}>
         <div style={{ display: 'flex', alignItems: 'flex-start' }}>
           {STEPS.map((step, idx) => (
-            <>
-              <div className="step-pill" key={step.num}>
+            <React.Fragment key={step.num}>
+              <div className="step-pill">
                 <div className={`step-dot ${step.num < currentStep ? 'done' : step.num === currentStep ? 'active' : 'inactive'}`}>
                   {step.num < currentStep ? (
                     <span style={{ fontSize: 13, color: '#22c55e', fontWeight: 700 }}>✓</span>
@@ -223,7 +224,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
                       : 'rgba(255,255,255,0.07)',
                 }} />
               )}
-            </>
+            </React.Fragment>
           ))}
         </div>
 

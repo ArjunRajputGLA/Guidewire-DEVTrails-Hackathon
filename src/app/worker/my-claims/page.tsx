@@ -108,16 +108,13 @@ export default function MyClaimsPage() {
     };
 
     try {
-      const response = await fetch("http://localhost:5000/api/claims/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const { data, error } = await supabase
+        .from("claims")
+        .insert([payload])
+        .select();
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setErrorMsg(data.error || "Failed to submit claim.");
+      if (error) {
+        setErrorMsg(error.message || "Failed to submit claim.");
         setSuccessMsg("");
       } else {
         setShowForm(false);
