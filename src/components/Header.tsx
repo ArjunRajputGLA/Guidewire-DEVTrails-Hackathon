@@ -50,10 +50,18 @@ export default function Header() {
         </button>
 
         {/* User */}
-        <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white cursor-pointer hover:ring-2 hover:ring-indigo-500/50 transition-all"
-          style={{ background: "linear-gradient(135deg, #6366f1, #ec4899)" }}>
-          {user?.name?.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "AD"}
-        </div>
+        {user?.profilePic ? (
+          <img 
+            src={user.profilePic} 
+            alt="Profile" 
+            className="w-9 h-9 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-indigo-500/50 transition-all border border-white/10" 
+          />
+        ) : (
+          <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white cursor-pointer hover:ring-2 hover:ring-indigo-500/50 transition-all"
+            style={{ background: "linear-gradient(135deg, #6366f1, #ec4899)" }}>
+            {user?.name?.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "AD"}
+          </div>
+        )}
       </div>
     </header>
   );

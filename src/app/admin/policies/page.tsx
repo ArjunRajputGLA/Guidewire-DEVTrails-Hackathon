@@ -1,17 +1,31 @@
 "use client";
-import { policies } from "@/data/mockData";
-import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase-browser";
+import { Plus, Loader2 } from "lucide-react";
 
 export default function PoliciesPage() {
-  const statusColor = (s: string) => {
-    if (s === "active") return "bg-emerald-500/15 text-emerald-400";
-    if (s === "expired") return "bg-gray-500/15 text-gray-400";
-    return "bg-red-500/15 text-red-400";
-  };
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCatalog = async () => {
+      const { data } = await supabase
+        .from('insurance_products')
+        .select('*')
+        .order('base_premium', { ascending: true });
+        
+      if (data) setProducts(data);
+      setLoading(false);
+    };
+    fetchCatalog();
+  }, []);
 
   const tierColor = (t: string) => {
-    if (t === "Pro") return "bg-purple-500/15 text-purple-400 border border-purple-500/20";
-    if (t === "Standard") return "bg-blue-500/15 text-blue-400 border border-blue-500/20";
+    if (!t) return "bg-gray-500/15 text-gray-400 border border-gray-500/20";
+    const lower = t.toLowerCase();
+    if (lower === "pro") return "bg-purple-500/15 text-purple-400 border border-purple-500/20";
+    if (lower === "standard") return "bg-blue-500/15 text-blue-400 border border-blue-500/20";
+    if (lower === "add-on") return "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20";
     return "bg-gray-500/15 text-gray-400 border border-gray-500/20";
   };
 
@@ -20,8 +34,8 @@ export default function PoliciesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white">Policies</h2>
-          <p className="text-sm text-gray-400 mt-1">Manage 7-day rolling income protection policies</p>
+          <h2 className="text-2xl font-bold text-white">Insurance Catalog</h2>
+          <p className="text-sm text-gray-400 mt-1">Manage all available income protection policies and add-ons</p>
         </div>
         <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90"
           style={{ background: "linear-gradient(135deg, #6366f1, #818cf8)" }}>
@@ -48,34 +62,55 @@ export default function PoliciesPage() {
       </div>
 
       {/* Table */}
-      <div className="glass-card overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-white/5">
-              {["Policy ID", "Worker", "Tier", "Premium", "Max Payout", "Coverage Period", "Status"].map((h) => (
-                <th key={h} className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {policies.map((p, i) => (
-              <tr key={p.id} className="border-b border-white/3 hover:bg-white/3 transition-colors"
-                style={{ animationDelay: `${i * 50}ms` }}>
-                <td className="px-6 py-4 text-sm font-mono text-indigo-400">{p.id}</td>
-                <td className="px-6 py-4 text-sm text-white">{p.workerName}</td>
-                <td className="px-6 py-4">
-                  <span className={`status-badge ${tierColor(p.tier)}`}>{p.tier}</span>
-                </td>
-                <td className="px-6 py-4 text-sm font-medium text-white">₹{p.weeklyPremium}/wk</td>
-                <td className="px-6 py-4 text-sm text-gray-300">₹{p.maxPayout.toLocaleString()}</td>
-                <td className="px-6 py-4 text-sm text-gray-400">{p.startDate} → {p.endDate}</td>
-                <td className="px-6 py-4">
-                  <span className={`status-badge ${statusColor(p.status)}`}>{p.status}</span>
-                </td>
+      <div className="glass-card overflow-hidden min-h-[300px] relative">
+        {loading ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-transparent">
+             <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/5">
+                {["Product ID", "Name", "Tier", "Base Premium", "Max Payout", "Features", "Status"].map((h) => (
+                  <th key={h} className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {products.map((p, i) => {
+                const shortId = p.id.split('-')[0].toUpperCase();
+                
+                return (
+                  <tr key={p.id} className="border-b border-white/3 hover:bg-white/3 transition-colors"
+                    style={{ animationDelay: `${i * 50}ms` }}>
+                    <td className="px-6 py-4 text-sm font-mono text-indigo-400">PROD-{shortId}</td>
+                    <td className="px-6 py-4 text-sm text-white font-medium">{p.name}</td>
+                    <td className="px-6 py-4">
+                      <span className={`status-badge ${tierColor(p.tier)}`}>{p.tier || 'Custom'}</span>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-medium text-emerald-400">₹{p.base_premium || 0}/wk</td>
+                    <td className="px-6 py-4 text-sm text-gray-300">₹{Number(p.max_payout || 0).toLocaleString()}</td>
+                    <td className="px-6 py-4 text-xs text-gray-500 max-w-[200px] truncate">
+                      {p.features && p.features.length > 0 ? p.features.join(', ') : p.description || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`status-badge ${p.is_active ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/15 text-red-400 border border-red-500/20'}`}>
+                        {p.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
+              {products.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                    No insurance products found in database catalog.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

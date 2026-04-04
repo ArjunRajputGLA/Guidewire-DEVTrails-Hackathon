@@ -6,13 +6,15 @@ export interface User {
   name: string;
   email: string;
   role: "admin" | "worker";
+  profilePic?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => { success: boolean; error?: string };
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signup: (name: string, email: string, password: string, role: "admin" | "worker") => { success: boolean; error?: string };
+  updateProfilePic: (picUrl: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -21,6 +23,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Pre-seeded users
 const DEFAULT_USERS: { email: string; password: string; name: string; role: "admin" | "worker" }[] = [
   { email: "admin@gigshield.in", password: "admin123", name: "Jatin M.", role: "admin" },
+  { email: "admin@gigshield.com", password: "123456", name: "Admin", role: "admin" },
   { email: "rahul@gigshield.in", password: "worker123", name: "Rahul Yadav", role: "worker" },
 ];
 
@@ -45,22 +48,90 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const stored = localStorage.getItem("gigshield_user");
-    if (stored) {
-      try {
-        setUser(JSON.parse(stored));
-      } catch {
-        localStorage.removeItem("gigshield_user");
+
+    import("@/lib/supabase-browser").then(async ({ supabase }) => {
+      // First check if there is an active Supabase user (Worker)
+      const { data: { user: sbUser } } = await supabase.auth.getUser();
+      if (sbUser) {
+        const { data: profile } = await supabase
+          .from("worker_profiles")
+          .select("full_name, profile_pic")
+          .eq("id", sbUser.id)
+          .single();
+          
+        if (profile) {
+          const syncedWorker: User = { 
+            name: profile.full_name, 
+            email: sbUser.email || "", 
+            role: "worker", 
+            profilePic: profile.profile_pic 
+          };
+          setUser(syncedWorker);
+          localStorage.setItem("gigshield_user", JSON.stringify(syncedWorker)); 
+          setLoading(false);
+          return;
+        }
       }
-    }
-    setLoading(false);
+
+      // If no Supabase user, fallback to local mock users (Admin)
+      if (stored) {
+        try {
+          const parsedUser = JSON.parse(stored);
+          setUser(parsedUser);
+
+          // Sync admin profile pic from DB on load
+          if (parsedUser.role === "admin") {
+            supabase
+              .from("admin_profiles")
+              .select("profile_pic")
+              .eq("email", parsedUser.email)
+              .maybeSingle()
+              .then(({ data }) => {
+                if (data?.profile_pic && data.profile_pic !== parsedUser.profilePic) {
+                  const syncedUser = { ...parsedUser, profilePic: data.profile_pic };
+                  setUser(syncedUser);
+                  localStorage.setItem("gigshield_user", JSON.stringify(syncedUser));
+                }
+              });
+          }
+        } catch {
+          localStorage.removeItem("gigshield_user");
+        }
+      }
+      setLoading(false);
+    });
   }, []);
 
-  const login = (email: string, password: string) => {
+const login = async (email: string, password: string) => {
     const users = getStoredUsers();
-    const found = users.find((u) => u.email === email && u.password === password);
-    if (!found) return { success: false, error: "Invalid email or password" };
+    let found = users.find((u) => u.email === email && u.password === password);
+
+    // Also check DEFAULT_USERS in case localStorage is missing the updated list
+    if (!found) {
+      found = DEFAULT_USERS.find((u) => u.email === email && u.password === password);
+    }
+
+    if (!found) return { success: false, error: "Invalid email or password" };  
 
     const loggedInUser: User = { name: found.name, email: found.email, role: found.role };
+
+    if (found.role === "admin") {
+      try {
+        const { supabase } = await import("@/lib/supabase-browser");
+        const { data } = await supabase
+          .from("admin_profiles")
+          .select("profile_pic")
+          .eq("email", found.email)
+          .maybeSingle();
+
+        if (data?.profile_pic) {
+          loggedInUser.profilePic = data.profile_pic;
+        }
+      } catch (err) {
+        console.log("Failed to fetch admin profile pic from DB", err);
+      }
+    }
+
     setUser(loggedInUser);
     localStorage.setItem("gigshield_user", JSON.stringify(loggedInUser));
     return { success: true };
@@ -82,6 +153,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { success: true };
   };
 
+const updateProfilePic = async (picUrl: string) => {
+    if (!user) return;
+    const updatedUser = { ...user, profilePic: picUrl };
+    setUser(updatedUser);
+    localStorage.setItem("gigshield_user", JSON.stringify(updatedUser));        
+
+    const users = getStoredUsers();
+    const updatedUsers = users.map(u => u.email === user.email ? { ...u, profilePic: picUrl } : u);
+    localStorage.setItem("gigshield_users", JSON.stringify(updatedUsers));      
+
+    if (user.role === "admin") {
+      try {
+        const { supabase } = await import("@/lib/supabase-browser");
+        const { error } = await supabase
+          .from("admin_profiles")
+          .upsert({ email: user.email, profile_pic: picUrl });
+        if (error) {
+          console.error("Failed to save admin profile pic to DB:", error);
+        }
+      } catch (err) {
+        console.error("Error connecting to DB:", err);
+      }
+    } else if (user.role === "worker") {
+      try {
+        const { supabase } = await import("@/lib/supabase-browser");
+        const { data: { user: sbUser } } = await supabase.auth.getUser();
+        if (sbUser) {
+          const { error } = await supabase
+            .from("worker_profiles")
+            .update({ profile_pic: picUrl })
+            .eq("id", sbUser.id);
+          if (error) {
+            console.error("Failed to save worker profile pic to DB:", error);
+          }
+        }
+      } catch (err) {
+        console.error("Error connecting to DB for worker:", err);
+      }
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem("gigshield_user");
@@ -89,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, updateProfilePic, logout }}>
       {children}
     </AuthContext.Provider>
   );
