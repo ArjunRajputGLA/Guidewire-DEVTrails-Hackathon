@@ -3,6 +3,9 @@
 import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { createClient } from '@supabase/supabase-js'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 const router = Router()
 

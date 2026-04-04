@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase-browser";
+import { createBrowserClient } from "@supabase/ssr";
 import { ClipboardList, Plus, AlertCircle, RefreshCw, CheckCircle, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 // The schema has trigger_type, trigger_icon, amount, status, created_at, id
 interface Claim {
@@ -42,6 +43,12 @@ export default function MyClaimsPage() {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const router = useRouter();
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
   
   const [triggerType, setTriggerType] = useState(TRIGGER_OPTIONS[0].type);
   const [amount, setAmount] = useState("");
@@ -71,6 +78,7 @@ export default function MyClaimsPage() {
       }
     }
     setLoading(false);
+    router.refresh();
   };
 
   useEffect(() => {
@@ -96,28 +104,35 @@ export default function MyClaimsPage() {
       worker_id: user.id,
       trigger_type: selectedTrigger?.type || triggerType,
       trigger_icon: selectedTrigger?.icon || "⚠️",
-      amount: parseFloat(amount) || 1000,
-      fraud_score: Math.floor(Math.random() * 40), // Random medium/low score for demo
-      status: "pending-review"
+      amount: parseFloat(amount) || 1000
     };
 
-    const { error } = await supabase.from("claims").insert([payload]);
+    try {
+      const response = await fetch("http://localhost:5000/api/claims/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    if (error) {
-      setErrorMsg("Failed to submit claim: " + error.message);
-      setSuccessMsg("");
-    } else {
-      setShowForm(false);
-      setAmount("");
-      setSuccessMsg("Your claim has been submitted successfully and is pending review.");
-      fetchMyClaims();
-      
-      // Auto-hide success message after 5 seconds
-      setTimeout(() => {
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErrorMsg(data.error || "Failed to submit claim.");
         setSuccessMsg("");
-      }, 5000);
+      } else {
+        setShowForm(false);
+        setAmount("");
+        setSuccessMsg("Claim submitted successfully!");
+        fetchMyClaims();
+        
+        // Auto-hide success message
+        setTimeout(() => setSuccessMsg(""), 5000);
+      }
+    } catch (err: any) {
+      setErrorMsg("Network error: " + err.message);
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   return (

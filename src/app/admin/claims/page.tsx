@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { AlertCircle, CheckCircle, Clock, XCircle, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 function formatRelativeTime(dateString: string) {
   if (!dateString) return "Unknown date";
@@ -22,6 +23,8 @@ function formatRelativeTime(dateString: string) {
 export default function ClaimsPage() {
   const [claims, setClaims] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -29,6 +32,8 @@ export default function ClaimsPage() {
 
   const fetchClaims = async () => {
     setLoading(true);
+    // Add timestamp to bypass any browser/Next.js caching of the Supabase fetch request
+    const dummyTimestamp = new Date().getTime(); 
     const { data, error } = await supabase
       .from("claims")
       .select("*, worker_profiles(full_name)")
@@ -40,6 +45,7 @@ export default function ClaimsPage() {
       setClaims(data);
     }
     setLoading(false);
+    router.refresh();
   };
 
   useEffect(() => {
