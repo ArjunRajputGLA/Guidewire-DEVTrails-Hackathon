@@ -15,8 +15,6 @@ interface FileUpload {
 
 const emptyUpload = (): FileUpload => ({ file: null, url: '', state: 'idle', preview: '' })
 
-// ── Fix 1: useRef<HTMLInputElement>(null) → useRef<HTMLInputElement | null>(null)
-// ── Fix 2: UploadBox inputRef type updated to match
 interface UploadBoxProps {
   label: string
   hint: string
@@ -36,7 +34,6 @@ export default function Step3() {
   const [error, setError]         = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  // Fix: type is RefObject<HTMLInputElement | null>
   const idRef:      React.RefObject<HTMLInputElement | null> = useRef<HTMLInputElement | null>(null)
   const selfieRef:  React.RefObject<HTMLInputElement | null> = useRef<HTMLInputElement | null>(null)
   const dashRef:    React.RefObject<HTMLInputElement | null> = useRef<HTMLInputElement | null>(null)
@@ -113,138 +110,215 @@ export default function Step3() {
     router.push('/onboarding/step-4')
   }
 
-  // ── UploadBox component ──────────────────────────────────────────────────
-  const UploadBox = ({ label, hint, icon, upload, inputRef, onChange }: UploadBoxProps) => (
-    <div
-      onClick={() => inputRef.current?.click()}
-      style={{
-        border: `2px dashed ${
-          upload.state === 'done'  ? '#22c55e' :
-          upload.state === 'error' ? '#ef4444' :
-          'rgba(255,255,255,0.15)'
-        }`,
-        borderRadius: 14,
-        padding: '20px',
-        cursor: 'pointer',
-        textAlign: 'center' as const,
-        background: upload.preview ? 'transparent' : 'rgba(255,255,255,0.03)',
-        position: 'relative' as const,
-        overflow: 'hidden' as const,
-        transition: 'border-color 0.2s',
-      }}
-    >
-      {upload.preview ? (
-        <div style={{ position: 'relative' as const }}>
-          <img
-            src={upload.preview}
-            alt="preview"
-            style={{ maxHeight: 120, borderRadius: 8, objectFit: 'cover' as const }}
-          />
-          {upload.state === 'uploading' && (
-            <div style={{
-              position: 'absolute' as const, inset: 0,
-              background: 'rgba(0,0,0,0.5)', borderRadius: 8,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff', fontSize: 14,
-            }}>Uploading...</div>
-          )}
-          {upload.state === 'done' && (
-            <div style={{
-              position: 'absolute' as const, top: 6, right: 6,
-              background: '#22c55e', borderRadius: '50%',
-              width: 22, height: 22,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 700,
-            }}>✓</div>
-          )}
-        </div>
-      ) : (
-        <>
-          <div style={{ fontSize: 28, marginBottom: 8 }}>{icon}</div>
-          <div style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>{label}</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{hint}</div>
-        </>
-      )}
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*,.pdf"
-        onChange={onChange}
-        style={{ display: 'none' }}
-      />
-    </div>
-  )
+  // ── UploadBox ────────────────────────────────────────────────────────────
+  const UploadBox = ({ label, hint, icon, upload, inputRef, onChange }: UploadBoxProps) => {
+    const isDone = upload.state === 'done'
+    const isError = upload.state === 'error'
+    const isUploading = upload.state === 'uploading'
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '13px 16px',
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: 12, color: '#fff', fontSize: 15,
-    fontFamily: '"DM Sans", sans-serif', outline: 'none',
+    return (
+      <div
+        onClick={() => inputRef.current?.click()}
+        style={{
+          border: `1.5px dashed ${isDone ? 'rgba(34,197,94,0.5)' : isError ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.12)'}`,
+          borderRadius: 16, padding: '18px',
+          cursor: 'pointer', position: 'relative', overflow: 'hidden',
+          background: isDone ? 'rgba(34,197,94,0.04)' : isError ? 'rgba(239,68,68,0.04)' : 'rgba(255,255,255,0.02)',
+          transition: 'all 0.3s ease',
+          display: 'flex', alignItems: 'center', gap: 14,
+        }}
+      >
+        {/* Upload area hover shimmer */}
+        <style>{`
+          .upload-box:hover { border-color: rgba(249,115,22,0.35) !important; background: rgba(249,115,22,0.03) !important; }
+          @keyframes spin { to { transform: rotate(360deg); } }
+          @keyframes uploadPop {
+            0% { transform: scale(0.8); opacity: 0; }
+            60% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+          }
+          .upload-pop { animation: uploadPop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+        `}</style>
+
+        {upload.preview ? (
+          <>
+            <div style={{
+              width: 60, height: 60, borderRadius: 10, overflow: 'hidden',
+              flexShrink: 0, position: 'relative',
+            }}>
+              <img src={upload.preview} alt="preview"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              {isUploading && (
+                <div style={{
+                  position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <div style={{
+                    width: 20, height: 20, border: '2px solid rgba(255,255,255,0.3)',
+                    borderTopColor: '#fff', borderRadius: '50%',
+                    animation: 'spin 0.7s linear infinite',
+                  }} />
+                </div>
+              )}
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, margin: '0 0 3px', color: '#fff' }}>{label}</p>
+              <p style={{ fontSize: 12, margin: 0, color: isUploading ? 'rgba(255,255,255,0.4)' : isDone ? '#4ade80' : '#f87171' }}>
+                {isUploading ? 'Uploading…' : isDone ? '✓ Uploaded successfully' : '✗ Upload failed'}
+              </p>
+            </div>
+            {isDone && (
+              <div className="upload-pop" style={{
+                width: 28, height: 28, borderRadius: '50%', background: '#22c55e',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 13, fontWeight: 800, flexShrink: 0,
+              }}>✓</div>
+            )}
+          </>
+        ) : (
+          <>
+            <div style={{
+              width: 48, height: 48, borderRadius: 13, flexShrink: 0,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 22,
+            }}>{icon}</div>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, margin: '0 0 3px' }}>{label}</p>
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.32)', margin: 0 }}>{hint}</p>
+            </div>
+            <div style={{
+              marginLeft: 'auto', width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 14, color: 'rgba(255,255,255,0.4)',
+            }}>↑</div>
+          </>
+        )}
+
+        <input ref={inputRef} type="file" accept="image/*,.pdf" onChange={onChange}
+          style={{ display: 'none' }} />
+      </div>
+    )
   }
+
+  const inp: React.CSSProperties = {
+    width: '100%', padding: '13px 16px',
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: 12, color: '#fff', fontSize: 14,
+    fontFamily: 'Outfit, sans-serif',
+  }
+
+  const lbl: React.CSSProperties = {
+    display: 'block', fontSize: 11, fontWeight: 600,
+    color: 'rgba(255,255,255,0.4)', marginBottom: 8,
+    letterSpacing: '0.08em', textTransform: 'uppercase',
+  }
+
+  // Upload progress summary
+  const uploadsDone = [idDoc, selfie, dashboard].filter(u => u.state === 'done').length
 
   return (
     <div>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@800&display=swap');
-        select option { background: #1a1a2e; }
-        input:focus, select:focus { border-color: #f97316 !important; box-shadow: 0 0 0 3px rgba(249,115,22,0.15); }
-        .btn:hover:not(:disabled) { background: linear-gradient(135deg, #ea580c, #c2410c) !important; transform: translateY(-1px); }
-        .btn { transition: all 0.2s ease; }
-      `}</style>
-
-      <div style={{ marginBottom: 32 }}>
+      {/* Header */}
+      <div style={{ marginBottom: 28 }}>
         <div style={{
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          width: 48, height: 48, borderRadius: 14,
-          background: 'rgba(249,115,22,0.15)', marginBottom: 16, fontSize: 24,
+          width: 52, height: 52, borderRadius: 15,
+          background: 'rgba(249,115,22,0.1)',
+          border: '1px solid rgba(249,115,22,0.2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 26, marginBottom: 18,
         }}>🪪</div>
         <h2 style={{
-          fontFamily: '"Syne", sans-serif', fontWeight: 800,
-          fontSize: 24, margin: '0 0 8px',
+          fontFamily: '"Bricolage Grotesque", sans-serif',
+          fontWeight: 800, fontSize: 26, margin: '0 0 8px', letterSpacing: '-0.5px',
         }}>ID & verification photos</h2>
-        <p style={{ color: 'rgba(255,255,255,0.45)', margin: 0, fontSize: 15 }}>
+        <p style={{ color: 'rgba(255,255,255,0.42)', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
           Upload any govt. ID, a selfie, and your gig app dashboard screenshot
         </p>
       </div>
 
+      {/* Upload progress bar */}
+      {uploadsDone > 0 && (
+        <div style={{
+          background: 'rgba(34,197,94,0.06)',
+          border: '1px solid rgba(34,197,94,0.15)',
+          borderRadius: 12, padding: '10px 14px', marginBottom: 20,
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <div style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%', width: `${(uploadsDone / 3) * 100}%`,
+              background: 'linear-gradient(90deg, #22c55e, #4ade80)',
+              borderRadius: 2, transition: 'width 0.4s ease',
+            }} />
+          </div>
+          <span style={{ fontSize: 12, color: '#4ade80', fontWeight: 600, whiteSpace: 'nowrap' }}>
+            {uploadsDone}/3 uploaded
+          </span>
+        </div>
+      )}
+
+      {/* Error */}
       {error && (
         <div style={{
-          background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)',
-          borderRadius: 10, padding: '12px 16px', marginBottom: 20,
-          color: '#fca5a5', fontSize: 14,
-        }}>{error}</div>
+          background: 'rgba(239,68,68,0.07)',
+          border: '1px solid rgba(239,68,68,0.22)',
+          borderRadius: 12, padding: '12px 16px', marginBottom: 20,
+          color: '#fca5a5', fontSize: 13,
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <span>⚠️</span> {error}
+        </div>
       )}
 
       {/* Doc type */}
       <div style={{ marginBottom: 16 }}>
-        <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>
-          Document type
-        </label>
-        <select style={inputStyle} value={docType} onChange={e => setDocType(e.target.value)}>
-          <option value="">Select ID type</option>
-          <option value="aadhaar">Aadhaar Card</option>
-          <option value="pan">PAN Card</option>
-          <option value="driving_license">Driving License</option>
-          <option value="voter_id">Voter ID</option>
-        </select>
+        <label style={lbl}>Document type</label>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+          {[
+            { value: 'aadhaar', label: 'Aadhaar Card', emoji: '🪪' },
+            { value: 'pan', label: 'PAN Card', emoji: '💳' },
+            { value: 'driving_license', label: 'Driving License', emoji: '🪪' },
+            { value: 'voter_id', label: 'Voter ID', emoji: '🗳️' },
+          ].map(opt => (
+            <button key={opt.value}
+              type="button"
+              onClick={() => setDocType(opt.value)}
+              style={{
+                padding: '11px 14px',
+                background: docType === opt.value ? 'rgba(249,115,22,0.15)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${docType === opt.value ? 'rgba(249,115,22,0.45)' : 'rgba(255,255,255,0.08)'}`,
+                borderRadius: 11, cursor: 'pointer', color: '#fff',
+                fontFamily: 'Outfit, sans-serif', fontSize: 13, fontWeight: 500,
+                transition: 'all 0.2s ease', textAlign: 'left',
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}
+            >
+              <span>{opt.emoji}</span>
+              <span style={{ color: docType === opt.value ? '#fb923c' : 'rgba(255,255,255,0.7)' }}>{opt.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Doc number */}
       <div style={{ marginBottom: 24 }}>
-        <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>
-          {docType === 'aadhaar'          ? 'Aadhaar number (last 4 digits only)' :
-           docType === 'pan'              ? 'PAN number' :
-           docType === 'driving_license'  ? 'DL number' :
-           docType === 'voter_id'         ? 'Voter ID number' :
-                                           'Document number'}
+        <label style={lbl}>
+          {docType === 'aadhaar' ? 'Aadhaar number (last 4 digits)' :
+           docType === 'pan' ? 'PAN number' :
+           docType === 'driving_license' ? 'DL number' :
+           docType === 'voter_id' ? 'Voter ID number' :
+           'Document number'}
         </label>
         <input
-          style={inputStyle}
+          style={inp}
           placeholder={
             docType === 'aadhaar' ? 'XXXX XXXX 1234' :
-            docType === 'pan'     ? 'ABCDE1234F' :
-                                    'Enter number'
+            docType === 'pan' ? 'ABCDE1234F' : 'Enter number'
           }
           value={docNumber}
           onChange={e => setDocNumber(e.target.value.toUpperCase())}
@@ -252,10 +326,10 @@ export default function Step3() {
       </div>
 
       {/* Upload boxes */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
         <UploadBox
           label="Upload ID document"
-          hint="Photo or PDF of your govt. ID • Max 10MB"
+          hint="Photo or PDF of your govt. ID · Max 10MB"
           icon="📄"
           upload={idDoc}
           inputRef={idRef}
@@ -263,14 +337,14 @@ export default function Step3() {
         />
         <UploadBox
           label="Take a selfie"
-          hint="Clear photo of your face • Natural light works best"
+          hint="Clear photo of your face · Natural light works best"
           icon="🤳"
           upload={selfie}
           inputRef={selfieRef}
           onChange={e => handleFileChange(e, setSelfie, 'selfie')}
         />
         <UploadBox
-          label="Gig platform dashboard screenshot"
+          label="Gig platform dashboard"
           hint="Screenshot showing your earnings & delivery count"
           icon="📊"
           upload={dashboard}
@@ -280,20 +354,18 @@ export default function Step3() {
       </div>
 
       <button
-        className="btn"
-        onClick={handleSubmit}
-        disabled={submitting}
+        className="step-btn"
+        onClick={handleSubmit} disabled={submitting}
         style={{
           width: '100%', padding: '15px',
-          background: 'linear-gradient(135deg, #f97316, #ea580c)',
-          border: 'none', borderRadius: 12,
-          color: '#fff', fontSize: 16, fontWeight: 600,
+          background: submitting ? 'rgba(249,115,22,0.35)' : 'linear-gradient(135deg, #f97316 0%, #dc2626 100%)',
+          border: 'none', borderRadius: 14, color: '#fff', fontSize: 15, fontWeight: 700,
           cursor: submitting ? 'not-allowed' : 'pointer',
-          fontFamily: '"DM Sans", sans-serif',
-          opacity: submitting ? 0.7 : 1,
+          fontFamily: 'Outfit, sans-serif', letterSpacing: '0.02em',
+          transition: 'all 0.25s ease',
         }}
       >
-        {submitting ? 'Saving...' : 'Continue →'}
+        {submitting ? 'Saving…' : 'Continue →'}
       </button>
     </div>
   )
