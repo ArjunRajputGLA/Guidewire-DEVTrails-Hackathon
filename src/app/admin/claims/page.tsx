@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import { AlertCircle, CheckCircle, Clock, XCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, CheckCircle, Clock, XCircle, RefreshCw, TrendingUp, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 function formatRelativeTime(dateString: string) {
@@ -9,7 +9,6 @@ function formatRelativeTime(dateString: string) {
   const date = new Date(dateString);
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
   if (diffInSeconds < 60) return "just now";
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
@@ -24,7 +23,7 @@ export default function ClaimsPage() {
   const [claims, setClaims] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  
+
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -32,8 +31,7 @@ export default function ClaimsPage() {
 
   const fetchClaims = async () => {
     setLoading(true);
-    // Add timestamp to bypass any browser/Next.js caching of the Supabase fetch request
-    const dummyTimestamp = new Date().getTime(); 
+    const dummyTimestamp = new Date().getTime();
     const { data, error } = await supabase
       .from("claims")
       .select("*, worker_profiles(full_name)")
@@ -57,7 +55,7 @@ export default function ClaimsPage() {
       .from("claims")
       .update({ status })
       .eq("id", id);
-    
+
     if (error) {
       console.error(`Error updating claim to ${status}:`, error);
       alert("Failed to update status. Check permissions or network. " + error.message);
@@ -66,108 +64,235 @@ export default function ClaimsPage() {
     }
   };
 
-  const statusConfig: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
-    "paid": { color: "bg-emerald-500/15 text-emerald-400", icon: <CheckCircle className="w-3.5 h-3.5" />, label: "Paid" },
-    "auto-approved": { color: "bg-blue-500/15 text-blue-400", icon: <CheckCircle className="w-3.5 h-3.5" />, label: "Auto-Approved" },
-    "pending-review": { color: "bg-amber-500/15 text-amber-400", icon: <Clock className="w-3.5 h-3.5" />, label: "Pending Review" },
-    "rejected": { color: "bg-red-500/15 text-red-400", icon: <XCircle className="w-3.5 h-3.5" />, label: "Rejected" },
+  const statusConfig: Record<string, { color: string; bg: string; icon: React.ReactNode; label: string }> = {
+    paid: {
+      color: "text-emerald-400",
+      bg: "bg-emerald-500/10 border border-emerald-500/20",
+      icon: <CheckCircle className="w-3.5 h-3.5" />,
+      label: "Paid",
+    },
+    "auto-approved": {
+      color: "text-blue-400",
+      bg: "bg-blue-500/10 border border-blue-500/20",
+      icon: <Zap className="w-3.5 h-3.5" />,
+      label: "Auto-Approved",
+    },
+    "pending-review": {
+      color: "text-amber-400",
+      bg: "bg-amber-500/10 border border-amber-500/20",
+      icon: <Clock className="w-3.5 h-3.5" />,
+      label: "Pending Review",
+    },
+    rejected: {
+      color: "text-red-400",
+      bg: "bg-red-500/10 border border-red-500/20",
+      icon: <XCircle className="w-3.5 h-3.5" />,
+      label: "Rejected",
+    },
   };
 
   const fraudScoreColor = (score: number) => {
-    if (score < 30) return "text-emerald-400";
-    if (score < 60) return "text-amber-400";
-    return "text-red-400";
+    if (score < 30) return { text: "text-emerald-400", bar: "from-emerald-500 to-emerald-400" };
+    if (score < 60) return { text: "text-amber-400", bar: "from-amber-500 to-amber-400" };
+    return { text: "text-red-400", bar: "from-red-500 to-red-400" };
   };
 
   const stats = [
-    { label: "Total Claims", value: claims.length, icon: <AlertCircle className="w-5 h-5 text-indigo-400" /> },
-    { label: "Paid Out", value: claims.filter(c => c.status === "paid" || c.status === "auto-approved").length, icon: <CheckCircle className="w-5 h-5 text-emerald-400" /> },
-    { label: "Pending", value: claims.filter(c => c.status === "pending-review").length, icon: <Clock className="w-5 h-5 text-amber-400" /> },
-    { label: "Rejected", value: claims.filter(c => c.status === "rejected").length, icon: <XCircle className="w-5 h-5 text-red-400" /> },
+    {
+      label: "Total Claims",
+      value: claims.length,
+      icon: <AlertCircle className="w-5 h-5" />,
+      color: "text-indigo-400",
+      bg: "from-indigo-500/15 to-indigo-500/5 border-indigo-500/20",
+      accent: "#6366f1",
+    },
+    {
+      label: "Paid Out",
+      value: claims.filter((c) => c.status === "paid" || c.status === "auto-approved").length,
+      icon: <CheckCircle className="w-5 h-5" />,
+      color: "text-emerald-400",
+      bg: "from-emerald-500/15 to-emerald-500/5 border-emerald-500/20",
+      accent: "#22c55e",
+    },
+    {
+      label: "Pending Review",
+      value: claims.filter((c) => c.status === "pending-review").length,
+      icon: <Clock className="w-5 h-5" />,
+      color: "text-amber-400",
+      bg: "from-amber-500/15 to-amber-500/5 border-amber-500/20",
+      accent: "#f59e0b",
+    },
+    {
+      label: "Rejected",
+      value: claims.filter((c) => c.status === "rejected").length,
+      icon: <XCircle className="w-5 h-5" />,
+      color: "text-red-400",
+      bg: "from-red-500/15 to-red-500/5 border-red-500/20",
+      accent: "#ef4444",
+    },
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-8">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white">Claims Pipeline</h2>
-          <p className="text-sm text-gray-400 mt-1">Zero-touch parametric claims processing</p>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
+              <TrendingUp className="w-4 h-4 text-indigo-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-white tracking-tight">Claims Pipeline</h2>
+          </div>
+          <p className="text-sm text-gray-500 ml-11">Zero-touch parametric claims processing engine</p>
         </div>
-        <button onClick={fetchClaims} className="glass-button px-4 py-2 flex items-center justify-center gap-2">
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-400' : 'text-gray-400'}`} />
-          <span className="text-sm font-medium text-white">Refresh</span>
+        <button
+          onClick={fetchClaims}
+          className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 hover:border-indigo-500/40 transition-all duration-200"
+        >
+          <RefreshCw
+            className={`w-4 h-4 transition-all duration-700 ${
+              loading ? "animate-spin text-indigo-400" : "text-gray-400 group-hover:text-indigo-400 group-hover:rotate-180"
+            }`}
+          />
+          <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">Refresh</span>
         </button>
       </div>
 
-      {/* Stats */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.map((s) => (
-          <div key={s.label} className="glass-card p-5 flex items-center gap-4">
-            {s.icon}
-            <div>
-              <p className="text-2xl font-bold text-white">{s.value}</p>
-              <p className="text-xs text-gray-500">{s.label}</p>
+        {stats.map((s, i) => (
+          <div
+            key={s.label}
+            className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${s.bg} border p-5 group hover:scale-[1.02] transition-all duration-200`}
+            style={{ animationDelay: `${i * 80}ms` }}
+          >
+            <div className="flex items-start justify-between mb-3">
+              <span className={s.color}>{s.icon}</span>
+              <div
+                className="w-2 h-2 rounded-full opacity-60 animate-pulse"
+                style={{ backgroundColor: s.accent }}
+              />
             </div>
+            <p className="text-3xl font-bold text-white tabular-nums">{s.value}</p>
+            <p className="text-xs text-gray-500 mt-1 font-medium">{s.label}</p>
+            <div
+              className="absolute bottom-0 left-0 right-0 h-0.5 opacity-40"
+              style={{ background: `linear-gradient(90deg, transparent, ${s.accent}, transparent)` }}
+            />
           </div>
         ))}
       </div>
 
-      {/* Claims Cards */}
-      <div className="space-y-4">
+      {/* Claims List */}
+      <div className="space-y-3">
         {loading && claims.length === 0 ? (
-           <p className="text-gray-400 text-sm py-4">Loading claims...</p>
+          <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+            <RefreshCw className="w-8 h-8 animate-spin text-indigo-400 mb-4" />
+            <p className="text-sm">Fetching claims data...</p>
+          </div>
         ) : claims.length === 0 ? (
-           <p className="text-gray-400 text-sm py-4">No claims found.</p>
+          <div className="flex flex-col items-center justify-center py-20 border border-dashed border-white/10 rounded-2xl text-gray-500">
+            <AlertCircle className="w-10 h-10 text-gray-700 mb-3" />
+            <p className="text-sm font-medium text-gray-400">No claims found</p>
+            <p className="text-xs text-gray-600 mt-1">Claims will appear here once workers file them</p>
+          </div>
         ) : (
-          claims.map((claim, i) => (
-            <div key={claim.id} className="glass-card p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
-              style={{ animationDelay: `${i * 80}ms` }}>
-              <div className="flex items-center gap-4">
-                <span className="text-2xl">{claim.trigger_icon || '⚠️'}</span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-white">{claim.worker_profiles?.full_name || "Unknown Worker"}</p>
-                    <span className="text-xs font-mono text-gray-500">{claim.id?.slice(0,8)}</span>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {claim.trigger_type} · Filed {formatRelativeTime(claim.created_at)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-6 w-full md:w-auto overflow-x-auto">
-                <div className="text-right">
-                  <p className="text-xs text-gray-500">Fraud Score</p>
-                  <p className={`text-lg font-bold ${fraudScoreColor(claim.fraud_score || 0)}`}>{claim.fraud_score || 0}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-gray-500">Payout</p>
-                  <p className="text-lg font-bold text-white">₹{claim.amount}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`status-badge flex items-center gap-1.5 ${statusConfig[claim.status]?.color || statusConfig['pending-review'].color}`}>
-                    {statusConfig[claim.status]?.icon || statusConfig['pending-review'].icon}
-                    {statusConfig[claim.status]?.label || "Unknown"}
-                  </span>
-                  {claim.status === "pending-review" && (
-                    <div className="flex gap-2 ml-2">
-                      <button 
-                        onClick={() => updateClaimStatus(claim.id, "paid")}
-                        className="px-3 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-md text-xs font-medium transition-colors"
-                      >
-                        Approve
-                      </button>
-                      <button 
-                        onClick={() => updateClaimStatus(claim.id, "rejected")}
-                        className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-md text-xs font-medium transition-colors"
-                      >
-                        Reject
-                      </button>
+          claims.map((claim, i) => {
+            const cfg = statusConfig[claim.status] || statusConfig["pending-review"];
+            const fraud = fraudScoreColor(claim.fraud_score || 0);
+            return (
+              <div
+                key={claim.id}
+                className="group relative rounded-2xl bg-white/[0.03] border border-white/[0.07] hover:bg-white/[0.055] hover:border-white/[0.12] transition-all duration-200 overflow-hidden"
+                style={{ animationDelay: `${i * 60}ms` }}
+              >
+                {/* Left accent bar based on status */}
+                <div
+                  className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl ${
+                    claim.status === "paid" || claim.status === "auto-approved"
+                      ? "bg-emerald-500"
+                      : claim.status === "pending-review"
+                      ? "bg-amber-500"
+                      : "bg-red-500"
+                  } opacity-60`}
+                />
+
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-5 pl-6">
+                  {/* Left: Worker info */}
+                  <div className="flex items-center gap-4">
+                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 border border-indigo-500/20 flex items-center justify-center text-xl flex-shrink-0">
+                      {claim.trigger_icon || "⚠️"}
                     </div>
-                  )}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-white">
+                          {claim.worker_profiles?.full_name || "Unknown Worker"}
+                        </p>
+                        <span className="text-[10px] font-mono text-gray-600 bg-white/5 px-1.5 py-0.5 rounded-md">
+                          #{claim.id?.slice(0, 8)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        <span className="text-gray-400">{claim.trigger_type}</span>
+                        {" · "}Filed {formatRelativeTime(claim.created_at)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right: Metrics + Status */}
+                  <div className="flex items-center gap-6 ml-auto flex-wrap">
+                    {/* Fraud Score */}
+                    <div className="text-center">
+                      <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">Fraud Score</p>
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full bg-gradient-to-r ${fraud.bar} rounded-full transition-all duration-500`}
+                            style={{ width: `${claim.fraud_score || 0}%` }}
+                          />
+                        </div>
+                        <span className={`text-sm font-bold tabular-nums ${fraud.text}`}>
+                          {claim.fraud_score || 0}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Payout */}
+                    <div className="text-center">
+                      <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">Payout</p>
+                      <p className="text-lg font-bold text-white tabular-nums">₹{claim.amount}</p>
+                    </div>
+
+                    {/* Status badge + actions */}
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${cfg.bg} ${cfg.color}`}
+                      >
+                        {cfg.icon}
+                        {cfg.label}
+                      </span>
+                      {claim.status === "pending-review" && (
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => updateClaimStatus(claim.id, "paid")}
+                            className="px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-xs font-semibold border border-emerald-500/20 transition-all duration-200 hover:scale-105 active:scale-95"
+                          >
+                            ✓ Approve
+                          </button>
+                          <button
+                            onClick={() => updateClaimStatus(claim.id, "rejected")}
+                            className="px-3 py-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 text-xs font-semibold border border-red-500/20 transition-all duration-200 hover:scale-105 active:scale-95"
+                          >
+                            ✕ Reject
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
