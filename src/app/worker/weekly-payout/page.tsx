@@ -146,7 +146,7 @@ export default function WeeklyPayoutPage() {
 
 const payoutStyle = `
   @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap');
-  .wp-wrap { font-family: 'Sora', sans-serif; max-width: 780px; animation: fadeUp 0.4s ease both; }
+  .wp-wrap { font-family: 'Sora', sans-serif; max-width: 780px; margin: 0 auto; animation: fadeUp 0.4s ease both; }
   @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
 
   .wp-loading { display: flex; align-items: center; justify-content: center; height: 200px; color: #34d399; font-family: 'Sora', sans-serif; }

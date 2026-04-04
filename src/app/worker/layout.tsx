@@ -303,6 +303,6 @@ const layoutStyle = `
 
   /* Main */
   .wl-main { flex: 1; padding: 32px 28px; }
-  .wl-main-inner { max-width: 900px; animation: wl-fadeUp 0.35s ease both; }
+  .wl-main-inner { max-width: 900px; margin: 0 auto; animation: wl-fadeUp 0.35s ease both; }
   @keyframes wl-fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
 `

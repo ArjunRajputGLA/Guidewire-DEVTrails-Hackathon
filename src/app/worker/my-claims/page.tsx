@@ -348,6 +348,7 @@ const styles = `
   .mc-wrap {
     font-family: 'Sora', sans-serif;
     max-width: 860px;
+    margin: 0 auto;
     animation: mc-fadeUp 0.35s ease both;
   }
   @keyframes mc-fadeUp {

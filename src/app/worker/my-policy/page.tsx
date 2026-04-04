@@ -182,7 +182,7 @@ export default function MyPolicyPage() {
 
 const policyStyle = `
   @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap');
-  .mp-wrap { font-family: 'Sora', sans-serif; max-width: 780px; }
+  .mp-wrap { font-family: 'Sora', sans-serif; max-width: 780px; margin: 0 auto; }
 
   .mp-loading { display: flex; align-items: center; justify-content: center; height: 200px; color: #34d399; }
   .mp-spin { animation: spin 0.8s linear infinite; }

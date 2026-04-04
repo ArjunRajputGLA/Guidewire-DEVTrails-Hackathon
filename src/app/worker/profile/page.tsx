@@ -167,7 +167,7 @@ export default function ProfilePage() {
 
 const profileStyle = `
   @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap');
-  .pf-wrap { font-family: 'Sora', sans-serif; max-width: 580px; animation: fadeUp 0.4s ease both; }
+  .pf-wrap { font-family: 'Sora', sans-serif; max-width: 580px; margin: 0 auto; animation: fadeUp 0.4s ease both; }
   @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
 
   .pf-loading {
