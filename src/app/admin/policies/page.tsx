@@ -1,13 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase-browser";
-import { Plus, Loader2, Shield } from "lucide-react";
+import { Plus, Loader2, Shield, Search } from "lucide-react";
 import { fetchWorkerPoliciesAction } from "./actions";
 
 export default function PoliciesPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [workerPolicies, setWorkerPolicies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchCatalog = async () => {
@@ -36,6 +37,28 @@ export default function PoliciesPage() {
     return { badge: "bg-gray-500/10 text-gray-400 border border-gray-500/20", dot: "#6b7280" };
   };
 
+  const filteredWorkerPolicies = workerPolicies.filter((wp) => {
+    if (!searchQuery) return true;
+    const term = searchQuery.toLowerCase();
+    const workerName = (wp.worker_profiles?.full_name || "").toLowerCase();
+    const workerMobile = (wp.worker_profiles?.mobile || "").toLowerCase();
+    const policyName = (wp.insurance_products?.name || "").toLowerCase();
+    return workerName.includes(term) || workerMobile.includes(term) || policyName.includes(term);
+  });
+
+  const groupedPolicies = Object.entries(
+    filteredWorkerPolicies.reduce((acc, wp) => {
+      const mobile = wp.worker_profiles?.mobile || "Unknown Phone";
+      if (!acc[mobile]) {
+        acc[mobile] = {
+          worker: wp.worker_profiles,
+          policies: [],
+        };
+      }
+      acc[mobile].policies.push(wp);
+      return acc;
+    }, {} as Record<string, { worker: any; policies: any[] }>)
+  ).map(([mobile, data]) => ({ mobile, ...data }));
 
 
   return (
@@ -203,65 +226,95 @@ export default function PoliciesPage() {
 
       {/* Worker Active Policies */}
       <div className="mt-8">
-        <h3 className="text-xl font-bold text-white mb-4">Active Worker Subscriptions</h3>
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.07] overflow-hidden min-h-[200px]">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold text-white">Active Worker Subscriptions</h3>
+          <div className="relative w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10" />
+            <input
+              type="text"
+              placeholder="Search workers, phones, policies..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all z-0"
+            />
+          </div>
+        </div>
+        
+        <div className="space-y-4">
           {loading ? (
-            <div className="flex items-center justify-center py-16">
+            <div className="flex items-center justify-center py-16 bg-white/[0.03] border border-white/[0.07] rounded-2xl">
               <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
             </div>
+          ) : groupedPolicies.length === 0 ? (
+            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl py-12 text-center text-gray-500 text-sm">
+              {searchQuery ? "No matches found for your search." : "No active worker subscriptions found."}
+            </div>
           ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/[0.06]">
-                  {["Worker", "Mobile", "Policy/Add-on", "Tier", "Enrolled Date"].map((h) => (
-                    <th
-                      key={h}
-                      className="px-6 py-4 text-left text-[10px] font-bold text-gray-600 uppercase tracking-widest"
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {workerPolicies.map((wp, i) => {
-                  const tc = tierColor(wp.insurance_products?.tier);
-                  const enrolledDate = new Date(wp.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                  return (
-                    <tr
-                      key={wp.id}
-                      className="border-b border-white/[0.04] hover:bg-white/[0.025] transition-colors duration-150"
-                      style={{ animationDelay: `${i * 30}ms` }}
-                    >
-                      <td className="px-6 py-4 text-sm font-semibold text-white">
-                        {wp.worker_profiles?.full_name || "Unknown"}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-400">
-                        {wp.worker_profiles?.mobile || "N/A"}
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium text-white">
-                        {wp.insurance_products?.name || "Unknown Policy"}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${tc.badge}`}>
-                          {wp.insurance_products?.tier || "N/A"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-xs text-gray-500">
-                        {enrolledDate}
-                      </td>
+            groupedPolicies.map((group, groupIdx) => (
+              <div 
+                key={group.mobile} 
+                className="rounded-2xl bg-white/[0.03] border border-white/[0.07] overflow-hidden"
+                style={{ animationDelay: `${groupIdx * 40}ms` }}
+              >
+                {/* Group Header */}
+                <div className="bg-white/[0.02] px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500/20 to-violet-500/20 flex items-center justify-center border border-indigo-500/20 text-indigo-300 font-bold">
+                      {(group.worker?.full_name?.[0] || "?").toUpperCase()}
+                    </div>
+                    <div>
+                      <h4 className="text-white font-semibold flex items-center gap-2">
+                        {group.worker?.full_name || "Unknown Worker"}
+                      </h4>
+                      <p className="text-xs text-gray-400 font-mono bg-white/5 px-1.5 py-0.5 rounded mt-0.5 w-max">
+                        {group.mobile}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-gray-500 mb-1 uppercase tracking-wider font-bold">Total Subscriptions</p>
+                    <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20">
+                      {group.policies.length} {group.policies.length === 1 ? 'Policy' : 'Policies'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Group Policies Table */}
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-white/[0.06]">
+                      {["Policy / Add-on", "Tier", "Enrolled Date"].map((h) => (
+                        <th key={h} className="px-6 py-3 text-left text-[10px] font-bold text-gray-600 uppercase tracking-widest bg-black/20">
+                          {h}
+                        </th>
+                      ))}
                     </tr>
-                  );
-                })}
-                {workerPolicies.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-600 text-sm">
-                      No active worker subscriptions found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {group.policies.map((wp: any, i: number) => {
+                      const tc = tierColor(wp.insurance_products?.tier);
+                      const enrolledDate = new Date(wp.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                      
+                      return (
+                        <tr key={wp.id} className="border-b border-white/[0.03] last:border-0 hover:bg-white/[0.02] transition-colors">
+                          <td className="px-6 py-3.5 text-sm font-medium text-gray-200">
+                            {wp.insurance_products?.name || "Unknown Policy"}
+                          </td>
+                          <td className="px-6 py-3.5">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${tc.badge}`}>
+                              {wp.insurance_products?.tier || "N/A"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-3.5 text-xs text-gray-500">
+                            {enrolledDate}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ))
           )}
         </div>
       </div>
