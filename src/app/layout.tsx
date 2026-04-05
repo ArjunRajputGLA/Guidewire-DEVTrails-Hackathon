@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "GigShield — AI-Powered Income Protection",
   description: "AI-Powered Parametric Income Protection for India's Gig Economy",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
