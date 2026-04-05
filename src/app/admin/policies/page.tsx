@@ -58,7 +58,11 @@ export default function PoliciesPage() {
       acc[mobile].policies.push(wp);
       return acc;
     }, {} as Record<string, { worker: any; policies: any[] }>)
-  ).map(([mobile, data]) => ({ mobile, ...data }));
+  ).map(([mobile, data]) => ({ 
+    mobile, 
+    worker: data.worker, 
+    policies: data.policies 
+  }));
 
 
   return (
