@@ -2,9 +2,11 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase-browser";
 import { Plus, Loader2, Shield } from "lucide-react";
+import { fetchWorkerPoliciesAction } from "./actions";
 
 export default function PoliciesPage() {
   const [products, setProducts] = useState<any[]>([]);
+  const [workerPolicies, setWorkerPolicies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -14,6 +16,12 @@ export default function PoliciesPage() {
         .select("*")
         .order("base_premium", { ascending: true });
       if (data) setProducts(data);
+      
+      const response = await fetchWorkerPoliciesAction();
+      if (response && response.success && response.data) {
+        setWorkerPolicies(response.data);
+      }
+      
       setLoading(false);
     };
     fetchCatalog();
@@ -28,38 +36,7 @@ export default function PoliciesPage() {
     return { badge: "bg-gray-500/10 text-gray-400 border border-gray-500/20", dot: "#6b7280" };
   };
 
-  const tiers = [
-    {
-      tier: "Starter",
-      earnings: "₹2,500 – ₹3,500/wk",
-      premium: "₹29/wk",
-      payout: "₹1,500 max",
-      gradient: "from-gray-500/15 to-gray-600/5",
-      border: "border-gray-500/20",
-      accent: "#6b7280",
-      letter: "#9ca3af",
-    },
-    {
-      tier: "Standard",
-      earnings: "₹3,500 – ₹5,500/wk",
-      premium: "₹49/wk",
-      payout: "₹2,500 max",
-      gradient: "from-blue-500/15 to-blue-600/5",
-      border: "border-blue-500/20",
-      accent: "#3b82f6",
-      letter: "#60a5fa",
-    },
-    {
-      tier: "Pro",
-      earnings: "₹5,500 – ₹8,000/wk",
-      premium: "₹79/wk",
-      payout: "₹4,000 max",
-      gradient: "from-violet-500/15 to-violet-600/5",
-      border: "border-violet-500/20",
-      accent: "#8b5cf6",
-      letter: "#a78bfa",
-    },
-  ];
+
 
   return (
     <div className="space-y-8">
@@ -83,45 +60,59 @@ export default function PoliciesPage() {
         </button>
       </div>
 
-      {/* Tier Cards */}
+      {/* Tier Cards - Dynamically rendered for base policies */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {tiers.map((t, i) => (
-          <div
-            key={t.tier}
-            className={`relative rounded-2xl bg-gradient-to-br ${t.gradient} border ${t.border} p-6 hover:scale-[1.02] transition-all duration-200 group overflow-hidden`}
-          >
+        {products.filter(p => ["Starter", "Standard", "Pro"].includes(p.tier) && p.is_active).map((p, i) => {
+          
+          let gradient = "from-gray-500/15 to-gray-600/5";
+          let border = "border-gray-500/20";
+          let accent = "#6b7280";
+          let letter = "#9ca3af";
+          
+          if (p.tier === "Pro") {
+            gradient = "from-violet-500/15 to-violet-600/5"; border = "border-violet-500/20"; accent = "#8b5cf6"; letter = "#a78bfa";
+          } else if (p.tier === "Standard") {
+            gradient = "from-blue-500/15 to-blue-600/5"; border = "border-blue-500/20"; accent = "#3b82f6"; letter = "#60a5fa";
+          }
+          
+          return (
             <div
-              className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-[0.07] -translate-y-8 translate-x-8"
-              style={{ background: t.accent }}
-            />
-            <div
-              className="w-10 h-10 rounded-xl mb-4 flex items-center justify-center text-sm font-bold border"
-              style={{
-                background: `${t.accent}20`,
-                borderColor: `${t.accent}35`,
-                color: t.letter,
-              }}
+              key={p.id}
+              className={`relative rounded-2xl bg-gradient-to-br ${gradient} border ${border} p-6 hover:scale-[1.02] transition-all duration-200 group overflow-hidden`}
             >
-              {t.tier[0]}
-            </div>
-            <h4 className="text-base font-bold text-white mb-1">{t.tier}</h4>
-            <p className="text-xs text-gray-500 mb-4">{t.earnings}</p>
-            <div className="flex items-end justify-between">
-              <div>
-                <p className="text-2xl font-bold text-white">{t.premium}</p>
-                <p className="text-xs text-gray-600">per week</p>
+              <div
+                className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-[0.07] -translate-y-8 translate-x-8"
+                style={{ background: accent }}
+              />
+              <div
+                className="w-10 h-10 rounded-xl mb-4 flex items-center justify-center text-sm font-bold border"
+                style={{
+                  background: `${accent}20`,
+                  borderColor: `${accent}35`,
+                  color: letter,
+                }}
+              >
+                {p.tier[0]}
               </div>
-              <div className="text-right">
-                <p className="text-sm font-semibold" style={{ color: t.letter }}>{t.payout}</p>
-                <p className="text-xs text-gray-600">max payout</p>
+              <h4 className="text-base font-bold text-white mb-1">{p.tier} Policy</h4>
+              <p className="text-xs text-gray-500 mb-4">{p.description || "Income Protection"}</p>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-white">₹{p.base_premium}</p>
+                  <p className="text-xs text-gray-600">per week</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-semibold" style={{ color: letter }}>₹{Number(p.max_payout).toLocaleString()} max</p>
+                  <p className="text-xs text-gray-600">max payout</p>
+                </div>
               </div>
+              <div
+                className="absolute bottom-0 left-0 right-0 h-[2px] opacity-50"
+                style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }}
+              />
             </div>
-            <div
-              className="absolute bottom-0 left-0 right-0 h-[2px] opacity-50"
-              style={{ background: `linear-gradient(90deg, transparent, ${t.accent}, transparent)` }}
-            />
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Table */}
@@ -208,6 +199,71 @@ export default function PoliciesPage() {
             </tbody>
           </table>
         )}
+      </div>
+
+      {/* Worker Active Policies */}
+      <div className="mt-8">
+        <h3 className="text-xl font-bold text-white mb-4">Active Worker Subscriptions</h3>
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.07] overflow-hidden min-h-[200px]">
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-white/[0.06]">
+                  {["Worker", "Mobile", "Policy/Add-on", "Tier", "Enrolled Date"].map((h) => (
+                    <th
+                      key={h}
+                      className="px-6 py-4 text-left text-[10px] font-bold text-gray-600 uppercase tracking-widest"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {workerPolicies.map((wp, i) => {
+                  const tc = tierColor(wp.insurance_products?.tier);
+                  const enrolledDate = new Date(wp.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                  return (
+                    <tr
+                      key={wp.id}
+                      className="border-b border-white/[0.04] hover:bg-white/[0.025] transition-colors duration-150"
+                      style={{ animationDelay: `${i * 30}ms` }}
+                    >
+                      <td className="px-6 py-4 text-sm font-semibold text-white">
+                        {wp.worker_profiles?.full_name || "Unknown"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-400">
+                        {wp.worker_profiles?.mobile || "N/A"}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-white">
+                        {wp.insurance_products?.name || "Unknown Policy"}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${tc.badge}`}>
+                          {wp.insurance_products?.tier || "N/A"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-xs text-gray-500">
+                        {enrolledDate}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {workerPolicies.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-gray-600 text-sm">
+                      No active worker subscriptions found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
     </div>
   );

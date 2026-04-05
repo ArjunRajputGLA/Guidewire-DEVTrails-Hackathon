@@ -23,11 +23,24 @@ export default function MyPolicyPage() {
     const policies = activeRows || [];
     setActivePolicies(policies);
 
+    // Fetch ALL active policies, not just add-ons
     const { data: addons } = await supabase
-      .from('insurance_products').select('*').eq('tier', 'Add-on').eq('is_active', true);
+      .from('insurance_products')
+      .select('*')
+      .eq('is_active', true)
+      .order('tier', { ascending: false });
 
+    // Filter out already active ones
     const activeProductIds = policies.map(p => p.policy_id);
-    setAvailableAddons((addons || []).filter(addon => !activeProductIds.includes(addon.id)));
+    let availableProducts = (addons || []).filter(addon => !activeProductIds.includes(addon.id));
+    
+    // Only allow one base tier policy (Starter, Standard, Pro)
+    const hasBasePolicy = policies.some(p => ["Starter", "Standard", "Pro"].includes(p.insurance_products?.tier));
+    if (hasBasePolicy) {
+      availableProducts = availableProducts.filter(p => p.tier === "Add-on");
+    }
+
+    setAvailableAddons(availableProducts);
     setLoading(false);
   };
 
@@ -141,17 +154,22 @@ export default function MyPolicyPage() {
       <div className="mp-addons-section">
         <div className="mp-addons-header">
           <div>
-            <h2 className="mp-addons-title"><Sparkles size={18} /> Explore Add-ons</h2>
-            <p className="mp-addons-sub">Boost your protection with extra coverage modules</p>
+            <h2 className="mp-addons-title"><Sparkles size={18} /> Explore Coverage</h2>
+            <p className="mp-addons-sub">Boost your protection with extra coverage modules or subscribe to a base policy</p>
           </div>
         </div>
 
         {availableAddons.length > 0 ? (
           <div className="mp-addons-grid">
-            {availableAddons.map((addon) => (
-              <div key={addon.id} className="mp-addon-card">
+            {availableAddons.map((addon) => {
+               const theme = TIER_THEMES[addon.tier] || TIER_THEMES.Standard;
+               return (
+              <div key={addon.id} className="mp-addon-card" style={{ borderLeft: `4px solid ${theme.badge}` }}>
                 <div className="mp-addon-top">
-                  <h3 className="mp-addon-name">{addon.name}</h3>
+                  <div className="flex flex-col">
+                    <h3 className="mp-addon-name">{addon.name}</h3>
+                    <span className="mp-tier-chip-tiny mt-1 text-[10px] w-max font-semibold px-1.5 py-0.5 rounded" style={{ background: theme.badge + '22', color: theme.accent, border: `1px solid ${theme.badge}44` }}>{addon.tier}</span>
+                  </div>
                   <span className="mp-addon-price">₹{addon.base_premium}<span>/wk</span></span>
                 </div>
                 <p className="mp-addon-desc">{addon.description}</p>
@@ -163,16 +181,16 @@ export default function MyPolicyPage() {
                   {addingId === addon.id ? (
                     <><div className="mp-spin-sm" /> Adding…</>
                   ) : (
-                    <><PlusCircle size={14} /> Add to Plan</>
+                    <><PlusCircle size={14} /> Subscribe</>
                   )}
                 </button>
               </div>
-            ))}
+            )})}
           </div>
         ) : (
           <div className="mp-addons-full">
             <Check size={20} />
-            <span>You have all available add-ons active!</span>
+            <span>You have all available coverages active!</span>
           </div>
         )}
       </div>
