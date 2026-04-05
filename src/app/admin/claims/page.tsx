@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import { AlertCircle, CheckCircle, Clock, XCircle, RefreshCw, TrendingUp, Zap } from "lucide-react";
+import { AlertCircle, CheckCircle, Clock, XCircle, RefreshCw, TrendingUp, Zap, Trash2, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { deleteClaimAction } from "./actions";
 
 function formatRelativeTime(dateString: string) {
   if (!dateString) return "Unknown date";
@@ -23,6 +24,8 @@ export default function ClaimsPage() {
   const [claims, setClaims] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [claimToDelete, setClaimToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
 
   const supabase = createBrowserClient(
@@ -63,6 +66,26 @@ export default function ClaimsPage() {
     } else {
       fetchClaims();
     }
+  };
+
+  const confirmDeleteClaim = async () => {
+    if (!claimToDelete) return;
+    setIsDeleting(true);
+    
+    try {
+      const result = await deleteClaimAction(claimToDelete);
+      
+      if (!result.success) {
+        alert("Failed to delete claim: " + result.error);
+      } else {
+        await fetchClaims();
+      }
+    } catch (err: any) {
+      alert("Error deleting claim: " + err.message);
+    }
+    
+    setClaimToDelete(null);
+    setIsDeleting(false);
   };
 
   const statusConfig: Record<string, { color: string; bg: string; icon: React.ReactNode; label: string }> = {
@@ -305,6 +328,14 @@ export default function ClaimsPage() {
                           </button>
                         </div>
                       )}
+                      
+                      <button
+                        onClick={() => setClaimToDelete(claim.id)}
+                        className="p-1.5 ml-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500/80 hover:text-red-400 border border-transparent hover:border-red-500/20 transition-all duration-200"
+                        title="Delete Claim"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -313,6 +344,47 @@ export default function ClaimsPage() {
           })
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {claimToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-[#111216] border border-red-500/20 rounded-2xl p-8 max-w-sm w-full shadow-[0_0_40px_rgba(239,68,68,0.15)] overflow-hidden transform transition-all scale-100 opacity-100">
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-500/10 mb-5 mx-auto border border-red-500/20">
+              <TriangleAlert className="w-7 h-7 text-red-500" />
+            </div>
+            <h3 className="text-xl font-bold text-white text-center mb-3">Delete Claim Record?</h3>
+            <p className="text-gray-400 text-center text-sm mb-8 leading-relaxed">
+              This action <span className="text-red-400 font-semibold">cannot be undone</span>. The claim record will be permanently removed from the system and database.
+            </p>
+            <div className="flex gap-4 w-full">
+              <button
+                onClick={() => setClaimToDelete(null)}
+                disabled={isDeleting}
+                className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-sm font-semibold border border-white/10 transition-all duration-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteClaim}
+                disabled={isDeleting}
+                className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:shadow-[0_0_25px_rgba(239,68,68,0.6)] transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 group"
+              >
+                {isDeleting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                    <span>Delete</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
