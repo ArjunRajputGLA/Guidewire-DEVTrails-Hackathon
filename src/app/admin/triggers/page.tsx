@@ -26,6 +26,7 @@ export default function TriggersPage() {
   const [loading, setLoading] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchWeatherData = async () => {
     setLoading(true);
@@ -184,11 +185,19 @@ export default function TriggersPage() {
   const normalTriggers = triggers.filter((t) => t.status === "normal");
   const totalAffected = activeTriggers.reduce((sum, t) => sum + t.affectedWorkers, 0);
 
+  const filteredTriggers = triggers.filter((t) => {
+    const term = searchQuery.toLowerCase();
+    const typeMatch = t.type.toLowerCase().includes(term);
+    const locMatch = t.location.toLowerCase().includes(term);
+    const statusMatch = t.status.toLowerCase().includes(term);
+    return typeMatch || locMatch || statusMatch;
+  });
+
   return (
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
+        <div className="flex-1">
           <div className="flex items-center gap-3 mb-1">
             <div className="w-8 h-8 rounded-lg bg-red-500/15 border border-red-500/25 flex items-center justify-center">
               <Radio className="w-4 h-4 text-red-400" />
@@ -213,8 +222,18 @@ export default function TriggersPage() {
             Real-time parametric disruption detection · Last update {elapsedSeconds}s ago
           </p>
         </div>
+        <div className="flex items-center gap-4">
+          <input 
+            type="text" 
+            placeholder="Search triggers..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 min-w-[250px]"
+          />
+        </div>
+      </div>
 
-        {/* Live status pills */}
+      {/* Live status pills */}
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20">
             <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
@@ -234,7 +253,6 @@ export default function TriggersPage() {
             </div>
           )}
         </div>
-      </div>
 
       {/* Error */}
       {error && (
@@ -272,9 +290,9 @@ export default function TriggersPage() {
       )}
 
       {/* Trigger Cards */}
-      {triggers.length > 0 && (
+      {filteredTriggers.length > 0 && (
         <div className="grid grid-cols-1 gap-3">
-          {triggers.map((trigger, i) => {
+          {filteredTriggers.map((trigger, i) => {
             const style = statusStyle(trigger.status);
             return (
               <div

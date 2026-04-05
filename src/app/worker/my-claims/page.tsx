@@ -55,6 +55,7 @@ export default function MyClaimsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [locationVerified, setLocationVerified] = useState(false);
 
   const fetchMyClaims = async () => {
     setLoading(true);
@@ -100,26 +101,42 @@ export default function MyClaimsPage() {
 
     const selectedTrigger = TRIGGER_OPTIONS.find(t => t.type === triggerType);
 
+    const { latitude, longitude } = await new Promise<{ latitude: number; longitude: number }>((resolve) => {
+      if (!navigator.geolocation) return resolve({ latitude: 28.7041, longitude: 77.1025 });
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        () => resolve({ latitude: 28.7041, longitude: 77.1025 })
+      );
+    });
+
     const payload = {
-      worker_id: user.id,
-      trigger_type: selectedTrigger?.type || triggerType,
+      user_id: user.id,
+      disruption_type: selectedTrigger?.type || triggerType,
       trigger_icon: selectedTrigger?.icon || "⚠️",
-      amount: parseFloat(amount) || 1000
+      amount: parseFloat(amount) || 1000,
+      lat: latitude,
+      lon: longitude
     };
 
     try {
-      const { data, error } = await supabase
-        .from("claims")
-        .insert([payload])
-        .select();
+      const response = await fetch('http://localhost:5000/api/claims', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const resData = await response.json();
 
-      if (error) {
-        setErrorMsg(error.message || "Failed to submit claim.");
+      if (!response.ok) {
+        setErrorMsg(resData.message || "Failed to submit claim.");
         setSuccessMsg("");
       } else {
+        setLocationVerified(true);
+        setTimeout(() => setLocationVerified(false), 5000);
         setShowForm(false);
         setAmount("");
-        setSuccessMsg("Claim submitted successfully!");
+        
+        setSuccessMsg(`Claim submitted successfully! Status: ${resData.status}`);
+        
         fetchMyClaims();
         
         // Auto-hide success message
@@ -135,6 +152,42 @@ export default function MyClaimsPage() {
   return (
     <>
       <style>{styles}</style>
+
+      {/* Location Verification Popup */}
+      {locationVerified && (
+        <>
+          <style>{`
+            @keyframes verifyFadeInOut {
+              0% { opacity: 0; transform: translate(-50%, -20px); }
+              10% { opacity: 1; transform: translate(-50%, 0); }
+              90% { opacity: 1; transform: translate(-50%, 0); }
+              100% { opacity: 0; transform: translate(-50%, -20px); }
+            }
+          `}</style>
+          <div style={{
+            position: 'fixed',
+            top: '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: '#047857',
+            color: '#fff',
+            padding: '14px 20px',
+            borderRadius: '12px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            zIndex: 9999,
+            animation: 'verifyFadeInOut 5s ease-in-out forwards',
+            border: '1px solid rgba(255,255,255,0.2)'
+          }}>
+            <span style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            </span>
+            <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Location verified successfully</span>
+          </div>
+        </>
+      )}
 
       <div className="mc-wrap">
         {/* ── Header ── */}

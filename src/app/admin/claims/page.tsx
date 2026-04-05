@@ -22,6 +22,7 @@ function formatRelativeTime(dateString: string) {
 export default function ClaimsPage() {
   const [claims, setClaims] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
 
   const supabase = createBrowserClient(
@@ -132,6 +133,14 @@ export default function ClaimsPage() {
     },
   ];
 
+  const filteredClaims = claims.filter((claim) => {
+    const term = searchQuery.toLowerCase();
+    const workerName = (claim.worker_profiles?.full_name || "").toLowerCase();
+    const claimType = (claim.trigger_type || "").toLowerCase();
+    const claimId = (claim.id || "").toLowerCase();
+    return workerName.includes(term) || claimType.includes(term) || claimId.includes(term);
+  });
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -145,17 +154,26 @@ export default function ClaimsPage() {
           </div>
           <p className="text-sm text-gray-500 ml-11">Zero-touch parametric claims processing engine</p>
         </div>
-        <button
-          onClick={fetchClaims}
-          className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 hover:border-indigo-500/40 transition-all duration-200"
-        >
-          <RefreshCw
-            className={`w-4 h-4 transition-all duration-700 ${
-              loading ? "animate-spin text-indigo-400" : "text-gray-400 group-hover:text-indigo-400 group-hover:rotate-180"
-            }`}
+        <div className="flex items-center gap-4">
+          <input
+            type="text"
+            placeholder="Search claims..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 min-w-[250px]"
           />
-          <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">Refresh</span>
-        </button>
+          <button
+            onClick={fetchClaims}
+            className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 hover:border-indigo-500/40 transition-all duration-200"
+          >
+            <RefreshCw
+              className={`w-4 h-4 transition-all duration-700 ${
+                loading ? "animate-spin text-indigo-400" : "text-gray-400 group-hover:text-indigo-400 group-hover:rotate-180"
+              }`}
+            />
+            <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">Refresh</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -190,14 +208,14 @@ export default function ClaimsPage() {
             <RefreshCw className="w-8 h-8 animate-spin text-indigo-400 mb-4" />
             <p className="text-sm">Fetching claims data...</p>
           </div>
-        ) : claims.length === 0 ? (
+        ) : filteredClaims.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 border border-dashed border-white/10 rounded-2xl text-gray-500">
             <AlertCircle className="w-10 h-10 text-gray-700 mb-3" />
-            <p className="text-sm font-medium text-gray-400">No claims found</p>
-            <p className="text-xs text-gray-600 mt-1">Claims will appear here once workers file them</p>
+            <p className="text-sm font-medium text-gray-400">No matching claims found</p>
+            <p className="text-xs text-gray-600 mt-1">Try adjusting your search</p>
           </div>
         ) : (
-          claims.map((claim, i) => {
+          filteredClaims.map((claim, i) => {
             const cfg = statusConfig[claim.status] || statusConfig["pending-review"];
             const fraud = fraudScoreColor(claim.fraud_score || 0);
             return (

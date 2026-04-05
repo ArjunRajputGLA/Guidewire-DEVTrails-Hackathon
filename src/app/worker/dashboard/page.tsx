@@ -22,6 +22,13 @@ export default function WorkerDashboard() {
   const [submitting, setSubmitting] = useState(false)
   const [claimStatus, setClaimStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [claimMsg, setClaimMsg] = useState('')
+  const [locationVerified, setLocationVerified] = useState(false)
+  const [weatherAlert, setWeatherAlert] = useState<{
+    title: string;
+    desc: string;
+    emoji: string;
+    disruptionType: string;
+  } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,6 +50,39 @@ export default function WorkerDashboard() {
         payment: payment.data as Record<string, unknown> | null,
         policies: policiesRes.data || [],
       })
+
+      // Fetch Live Weather using the worker's city
+      try {
+        const city = ((profile.data as Record<string, unknown>)?.city as string) || 'Delhi';
+        const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
+        if (apiKey) {
+          const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)},IN&appid=${apiKey}&units=metric`);
+          const weatherData = await res.json();
+          if (weatherData && weatherData.weather) {
+            const condition = weatherData.weather[0].main.toLowerCase();
+            const temp = weatherData.main?.temp;
+            const humidity = weatherData.main?.humidity;
+            const aqiTrigger = (condition === 'haze' || condition === 'smoke' || condition === 'dust') && humidity < 40;
+
+            if (condition === 'rain' || condition === 'drizzle') {
+              setWeatherAlert({ title: 'Heavy Rain Warning', desc: `Rain detected in ${city} — threshold nearly met.`, emoji: '🌧️', disruptionType: 'Heavy Rainfall' });
+            } else if (condition === 'snow') {
+              setWeatherAlert({ title: 'Snowfall Warning', desc: `Snow accumulation detected in ${city}.`, emoji: '❄️', disruptionType: 'Snowfall' });
+            } else if (condition === 'thunderstorm' || condition === 'tornado') {
+              setWeatherAlert({ title: 'Severe Storm Alert', desc: `Thunderstorm/severe weather detected in ${city}.`, emoji: '⛈️', disruptionType: 'Severe Storm' });
+            } else if (temp && temp >= 45) {
+              setWeatherAlert({ title: 'Extreme Heat Alert', desc: `Temperatures reaching ${temp}°C in ${city}.`, emoji: '🌡️', disruptionType: 'Extreme Heat' });
+            } else if (aqiTrigger) {
+              setWeatherAlert({ title: 'Severe AQI Alert', desc: `Hazardous air quality indicators detected in ${city}.`, emoji: '🌫️', disruptionType: 'Severe AQI' });
+            } else {
+              setWeatherAlert(null); // No severe calamity detected
+            }
+          }
+        }
+      } catch (err) {
+        console.error("OpenWeather API check failed", err);
+      }
+
       setLoading(false)
     }
     fetchData()
@@ -61,24 +101,45 @@ export default function WorkerDashboard() {
       return
     }
 
+    const { latitude, longitude } = await new Promise<{ latitude: number; longitude: number }>((resolve) => {
+      if (!navigator.geolocation) return resolve({ latitude: 28.7041, longitude: 77.1025 });
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        () => resolve({ latitude: 28.7041, longitude: 77.1025 })
+      );
+    });
+
     const payload = {
-      worker_id: user.id,
-      trigger_type: "Heavy Rainfall",
-      trigger_icon: "🌧️",
+      user_id: user.id,
+      disruption_type: weatherAlert?.disruptionType || "Heavy Rainfall",
+      trigger_icon: weatherAlert?.emoji || "🌧️",
       amount: data?.income?.avg_daily_earnings ? Number(data.income.avg_daily_earnings) * 2 : 1500,
-      fraud_score: Math.floor(Math.random() * 40),
-      status: "pending-review"
+      lat: latitude,
+      lon: longitude
     };
 
-    const { error } = await supabase.from("claims").insert([payload]);
+    try {
+      const response = await fetch('http://localhost:5000/api/claims', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const resData = await response.json();
 
-    if (error) {
+      if (!response.ok) {
+        setClaimStatus('error')
+        setClaimMsg(resData.message || "Failed to submit claim")
+      } else {
+        setLocationVerified(true);
+        setTimeout(() => setLocationVerified(false), 5000);
+        setClaimStatus('success')
+        setClaimMsg(`Claim submitted! Status: ${resData.status}`)
+      }
+    } catch (err: any) {
       setClaimStatus('error')
-      setClaimMsg("Failed to submit claim: " + error.message)
-    } else {
-      setClaimStatus('success')
-      setClaimMsg('Claim submitted! Pending review.')
+      setClaimMsg("Network error: " + err.message)
     }
+
     setSubmitting(false)
   }
 
@@ -134,6 +195,42 @@ export default function WorkerDashboard() {
     <div className="gs-dash">
       <style>{dashStyle}</style>
 
+      {/* Location Verification Popup */}
+      {locationVerified && (
+        <>
+          <style>{`
+            @keyframes verifyFadeInOut {
+              0% { opacity: 0; transform: translate(-50%, -20px); }
+              10% { opacity: 1; transform: translate(-50%, 0); }
+              90% { opacity: 1; transform: translate(-50%, 0); }
+              100% { opacity: 0; transform: translate(-50%, -20px); }
+            }
+          `}</style>
+          <div style={{
+            position: 'fixed',
+            top: '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: '#047857',
+            color: '#fff',
+            padding: '14px 20px',
+            borderRadius: '12px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            zIndex: 9999,
+            animation: 'verifyFadeInOut 5s ease-in-out forwards',
+            border: '1px solid rgba(255,255,255,0.2)'
+          }}>
+            <span style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            </span>
+            <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Location verified successfully</span>
+          </div>
+        </>
+      )}
+
       {/* Hero greeting */}
       <div className="gs-hero">
         <div className="gs-hero-left">
@@ -171,47 +268,54 @@ export default function WorkerDashboard() {
       {/* Alert + Activity row */}
       <div className="gs-mid-row">
         {/* Weather Alert & Claim */}
-        <div className="gs-alert-card">
-          <p className="gs-card-label">Active Alert</p>
-          <div className="gs-alert-banner">
-            <span className="gs-alert-emoji">🌧️</span>
-            <div>
-              <p className="gs-alert-title">Heavy Rain Warning</p>
-              <p className="gs-alert-desc">48mm recorded in your zone in the last 2 hours — threshold nearly met.</p>
+        {weatherAlert ? (
+          <div className="gs-alert-card">
+            <p className="gs-card-label">Active Alert</p>
+            <div className="gs-alert-banner">
+              <span className="gs-alert-emoji">{weatherAlert.emoji}</span>
+              <div>
+                <p className="gs-alert-title">{weatherAlert.title}</p>
+                <p className="gs-alert-desc">{weatherAlert.desc}</p>
+              </div>
+              <div className="gs-alert-pulse" />
             </div>
-            <div className="gs-alert-pulse" />
-          </div>
 
-          {claimStatus === 'success' ? (
-            <div className="gs-success-box">
-              <div className="gs-success-icon">✓</div>
-              <p>{claimMsg}</p>
-            </div>
-          ) : (
-            <>
-              <button
-                onClick={handleQuickClaim}
-                disabled={submitting}
-                className={`gs-claim-btn ${submitting ? 'gs-claim-btn--loading' : ''}`}
-              >
-                {submitting ? (
-                  <>
-                    <div className="gs-btn-spinner" />
-                    Submitting…
-                  </>
-                ) : (
-                  <>
-                    <Zap size={16} />
-                    Quick Claim — Heavy Rain
-                  </>
+            {claimStatus === 'success' ? (
+              <div className="gs-success-box">
+                <div className="gs-success-icon">✓</div>
+                <p>{claimMsg}</p>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={handleQuickClaim}
+                  disabled={submitting}
+                  className={`gs-claim-btn ${submitting ? 'gs-claim-btn--loading' : ''}`}
+                >
+                  {submitting ? (
+                    <>
+                      <div className="gs-btn-spinner" />
+                      Submitting…
+                    </>
+                  ) : (
+                    <>
+                      <Zap size={16} />
+                      Quick Claim — {weatherAlert.disruptionType}
+                    </>
+                  )}
+                </button>
+                {claimStatus === 'error' && (
+                  <p className="gs-error-msg">❌ {claimMsg}</p>
                 )}
-              </button>
-              {claimStatus === 'error' && (
-                <p className="gs-error-msg">❌ {claimMsg}</p>
-              )}
-            </>
-          )}
-        </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="gs-alert-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(255, 255, 255, 0.05)', border: '1px dashed rgba(255, 255, 255, 0.1)' }}>
+            <span style={{ fontSize: '2rem', filter: 'grayscale(1)', opacity: 0.5 }}>🌤️</span>
+            <p style={{ marginTop: '12px', color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>No active calamities detected in your zone.</p>
+          </div>
+        )}
 
         {/* Activity breakdown */}
         <div className="gs-activity-card">
