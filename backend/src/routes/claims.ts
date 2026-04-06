@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
 import { createClient } from "@supabase/supabase-js";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from "dotenv";
 
 import axios from "axios";
@@ -13,6 +14,32 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+
+async function generateExplanation(fraud_score: number, reasons: string[]): Promise<string> {
+  try {
+    if (!process.env.GEMINI_API_KEY) {
+      return "Your claim requires further review based on our standard checks.";
+    }
+
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    const prompt = `Act as a helpful and professional automated assistant explaining an insurance claim rejection to a delivery worker.
+
+Fraud Score: ${fraud_score}/100.
+Reasons for failure:
+${reasons.length > 0 ? reasons.map((r) => "- " + r).join("\n") : "- General review criteria not met."}
+
+Write a very brief, compact explanation (maximum 2-3 lines). Be professional and nice. Explicitly mention the fraud score and summarize the reasons. Do not add long greetings or closings. Keep it extremely concise.`;
+
+    const result = await model.generateContent(prompt, { timeout: 10000 });
+    return result.response.text();
+  } catch (error) {
+    console.error("Gemini API error:", error);
+    return "Your claim requires further review based on our standard checks.";
+  }
+}
 
 async function validateLocation(lat: number, lon: number) {
   try {
@@ -129,34 +156,60 @@ router.post("/", async (req: Request, res: Response) => {
       0.15 * timePattern +
       0.15 * behaviorScore;
 
-    // 5. Decision Logic
-    let status = "rejected";
+    // 5. Initial Decision Logic (Might be overridden by database triggers)
+    let initialStatus = "rejected";
     if (fraudScore < 0.3) {
-      status = "approved";
+      initialStatus = "approved";
     } else if (fraudScore < 0.6) {
-      status = "review";
+      initialStatus = "review";
     }
 
-    // Store claim in DB
+    // Store claim in DB FIRST so the database trigger calculates its final bounds
     const newClaim = {
       worker_id: user_id,
       trigger_type: disruption_type,
       trigger_icon: trigger_icon || "⚠️",
-      fraud_score: Math.round(Math.min(fraudScore * 100, 100)), // storing as percentage
-      status,
+      fraud_score: Math.round(Math.min(fraudScore * 100, 100)), // base metrics
+      status: initialStatus,
       amount: amount || 100 // Client overrides or default 100
     };
 
-    const { error: insertError } = await supabaseAdmin
+    const { data: insertedClaim, error: insertError } = await supabaseAdmin
       .from("claims")
-      .insert([newClaim]);
+      .insert([newClaim])
+      .select()
+      .single();
 
     if (insertError) throw insertError;
 
+    // Retrieve the actual computed status and score from the table
+    const finalStatus = insertedClaim.status;
+    const finalScore = insertedClaim.fraud_score;
+
+    // Compile dynamic fallback reasons if the trigger escalated the risk invisibly
+    if (finalScore > 20 && finalScore > fraudScore * 100) {
+      if (amount > 1500) reasons.push("Unusually high claim amount requested.");
+      reasons.push("Excessive claim frequency within the last month.");
+    }
+
+    let explanation = "Claim approved successfully";
+    if (finalStatus === "rejected" || finalStatus === "pending-review" || finalStatus === "review") {
+      explanation = await generateExplanation(finalScore, reasons);
+    }
+
+    // Backfill explanation string
+    if (explanation) {
+      await supabaseAdmin
+        .from("claims")
+        .update({ explanation })
+        .eq("id", insertedClaim.id);
+    }
+
     return res.status(200).json({
-      status,
-      fraud_score: fraudScore,
-      message: status === "approved" ? "Claim approved" : status === "review" ? "Claim under review" : "Claim rejected",
+      status: finalStatus,
+      fraud_score: finalScore,
+      explanation,
+      message: finalStatus === "paid" || finalStatus === "auto-approved" || finalStatus === "approved" ? "Claim approved" : "Claim rejected or requires further review",
       reasons
     });
 

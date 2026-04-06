@@ -13,6 +13,7 @@ interface Claim {
   amount: number;
   fraud_score: number;
   status: string;
+  explanation?: string;
   created_at: string;
 }
 
@@ -385,6 +386,19 @@ export default function MyClaimsPage() {
                       <span className="mc-badge" style={{ color: "#4ade80", background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.2)" }}>Paid out</span>
                     )}
                   </div>
+
+                  {/* AI Explanation directly below the claim detail */}
+                  {(claim.status === "rejected" || claim.status === "review" || claim.status === "pending-review") && claim.explanation && (
+                    <div className="mc-ai-explanation">
+                      <div className="mc-ai-header">
+                          <div className="mc-ai-icon-bg">
+                            <span className="mc-ai-icon">✨</span>
+                          </div>
+                          <span className="mc-ai-title">AI Decision Analysis</span>
+                        </div>
+                        <div className="mc-ai-text">{claim.explanation}</div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -395,10 +409,64 @@ export default function MyClaimsPage() {
   );
 }
 
-const styles = `
+  const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap');
 
-  .mc-wrap {
+    .mc-ai-explanation {
+      background: linear-gradient(145deg, rgba(82, 113, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+      border: 1px solid rgba(82, 113, 255, 0.15);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    .mc-ai-explanation::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 4px;
+      height: 100%;
+      background: #5271ff;
+      border-radius: 4px 0 0 4px;
+    }
+    .mc-ai-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.95);
+      margin-bottom: 4px;
+    }
+    .mc-ai-icon-bg {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: rgba(82, 113, 255, 0.2);
+      border-radius: 8px;
+      color: #8fb0ff;
+    }
+    .mc-ai-icon {
+      font-size: 1rem;
+    }
+    .mc-ai-title {
+      letter-spacing: 0.3px;
+    }
+    .mc-ai-text {
+      font-size: 0.88rem;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.75);
+      margin: 0;
+      white-space: pre-wrap; /* Keeps Gemini's bulleted formatting */
+    }
+    }
     font-family: 'Sora', sans-serif;
     max-width: 860px;
     margin: 0 auto;

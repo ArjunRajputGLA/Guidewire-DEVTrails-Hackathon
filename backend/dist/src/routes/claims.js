@@ -5,11 +5,35 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const supabase_js_1 = require("@supabase/supabase-js");
+const generative_ai_1 = require("@google/generative-ai");
 const dotenv_1 = __importDefault(require("dotenv"));
 const axios_1 = __importDefault(require("axios"));
 dotenv_1.default.config();
 const router = (0, express_1.Router)();
 const supabaseAdmin = (0, supabase_js_1.createClient)(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const genAI = new generative_ai_1.GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+async function generateExplanation(fraud_score, reasons) {
+    try {
+        if (!process.env.GEMINI_API_KEY) {
+            return "Your claim requires further review based on our standard checks.";
+        }
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const prompt = `Explain in simple, friendly language why an insurance claim was rejected or flagged for review.
+
+Fraud Score: ${fraud_score}
+
+Reasons:
+${reasons.length > 0 ? reasons.map(r => "- " + r).join("\n") : "- No specific reasons provided."}
+
+Explain this to a delivery worker. Avoid technical jargon. Be clear and helpful. keep it concise.`;
+        const result = await model.generateContent(prompt, { timeout: 10000 });
+        return result.response.text();
+    }
+    catch (error) {
+        console.error("Gemini API error:", error);
+        return "Your claim requires further review based on our standard checks.";
+    }
+}
 async function validateLocation(lat, lon) {
     try {
         const response = await axios_1.default.get(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`, {
@@ -119,6 +143,13 @@ router.post("/", async (req, res) => {
         else if (fraudScore < 0.6) {
             status = "review";
         }
+        let explanation = null;
+        if (status === "rejected" || status === "review") {
+            explanation = await generateExplanation(fraudScore, reasons);
+        }
+        else {
+            explanation = "Claim approved successfully";
+        }
         // Store claim in DB
         const newClaim = {
             worker_id: user_id,
@@ -126,7 +157,8 @@ router.post("/", async (req, res) => {
             trigger_icon: trigger_icon || "⚠️",
             fraud_score: Math.round(Math.min(fraudScore * 100, 100)), // storing as percentage
             status,
-            amount: amount || 100 // Client overrides or default 100
+            amount: amount || 100, // Client overrides or default 100
+            explanation
         };
         const { error: insertError } = await supabaseAdmin
             .from("claims")
@@ -136,6 +168,7 @@ router.post("/", async (req, res) => {
         return res.status(200).json({
             status,
             fraud_score: fraudScore,
+            explanation,
             message: status === "approved" ? "Claim approved" : status === "review" ? "Claim under review" : "Claim rejected",
             reasons
         });
