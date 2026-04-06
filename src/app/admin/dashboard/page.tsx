@@ -45,6 +45,8 @@ export default function AdminDashboardPage() {
   const [loadingTriggers, setLoadingTriggers] = useState(true);
   const [recentClaims, setRecentClaims] = useState<any[]>([]);
   const [loadingClaims, setLoadingClaims] = useState(true);
+  const [claimsChartDataState, setClaimsChartDataState] = useState<any[]>([]);
+  const [premiumRevenueDataState, setPremiumRevenueDataState] = useState<any[]>([]);
 
   const [kpiStats, setKpiStats] = useState({
     workers: "...",
@@ -181,6 +183,63 @@ export default function AdminDashboardPage() {
       setLoadingClaims(false);
     };
 
+    const fetchChartData = async () => {
+      // Calculate start dates for the last 5 weeks
+      const weeksData: { week: string, claims: number, paid: number, revenue: number }[] = [];
+      for (let i = 4; i >= 0; i--) {
+        const start = new Date();
+        start.setDate(start.getDate() - (i * 7 + 7));
+        const end = new Date();
+        end.setDate(end.getDate() - i * 7);
+        weeksData.push({
+          week: `Week ${5 - i}`, // Or format date: start.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})
+          claims: 0,
+          paid: 0,
+          revenue: 0
+        });
+      }
+
+      // Fetch claims from the last 35 days
+      const thirtyFiveDaysAgo = new Date();
+      thirtyFiveDaysAgo.setDate(thirtyFiveDaysAgo.getDate() - 35);
+      
+      const { data: claimsData } = await supabase
+        .from("claims")
+        .select("amount, created_at, status")
+        .gte("created_at", thirtyFiveDaysAgo.toISOString());
+        
+      if (claimsData) {
+        claimsData.forEach(claim => {
+          const claimDate = new Date(claim.created_at);
+          const diffDays = Math.floor((Date.now() - claimDate.getTime()) / (1000 * 60 * 60 * 24));
+          const weekIndex = 4 - Math.min(Math.floor(diffDays / 7), 4);
+          
+          if (weekIndex >= 0 && weekIndex < 5) {
+            weeksData[weekIndex].claims += 1;
+            if (claim.status === "paid" || claim.status === "auto-approved" || claim.status === "approved") {
+              weeksData[weekIndex].paid += Number(claim.amount || 0);
+            }
+          }
+        });
+      }
+
+      // We'll simulate regular premium revenue slightly scaling with number of active policies
+      const { count: policiesCount } = await supabase
+        .from("worker_policies")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "active");
+        
+      const avgWeeklyPremiumPerPolicy = 100; // estimated weekly premium per worker
+      const totalWeeklyRevenue = (policiesCount || 0) * avgWeeklyPremiumPerPolicy;
+      
+      weeksData.forEach(w => {
+        w.revenue = totalWeeklyRevenue > 0 ? totalWeeklyRevenue : 25000; // fallback if no policies
+      });
+
+      setClaimsChartDataState(weeksData.map(w => ({ week: w.week, claims: w.claims })));
+      setPremiumRevenueDataState(weeksData.map(w => ({ week: w.week, revenue: w.revenue, claims: w.paid })));
+    };
+
     const fetchKPIs = async () => {
       const { count: workersCount } = await supabase
         .from("worker_profiles")
@@ -209,6 +268,7 @@ export default function AdminDashboardPage() {
     };
 
     fetchRecentClaims();
+    fetchChartData();
     fetchKPIs();
   }, []);
 
@@ -254,7 +314,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={claimsChartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+            <AreaChart data={claimsChartDataState.length > 0 ? claimsChartDataState : claimsChartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="claimsFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#6366f1" stopOpacity={0.25} />
@@ -283,7 +343,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={premiumRevenueData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }} barGap={4}>
+            <BarChart data={premiumRevenueDataState.length > 0 ? premiumRevenueDataState : premiumRevenueData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }} barGap={4}>
               <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" vertical={false} />
               <XAxis dataKey="week" stroke="#374151" tick={{ fill: "#6b7280", fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis stroke="#374151" tick={{ fill: "#6b7280", fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -302,7 +362,11 @@ export default function AdminDashboardPage() {
         <div className="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-6 hover:border-white/[0.12] transition-all duration-300">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-sm font-semibold text-white">Recent Claims</h3>
-            <span className="text-xs text-gray-600 bg-white/5 px-2 py-1 rounded-lg border border-white/8">
+            <span className="flex items-center gap-1.5 text-xs text-gray-300 bg-white/5 px-2.5 py-1 rounded-lg border border-white/8">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+              </span>
               Live
             </span>
           </div>

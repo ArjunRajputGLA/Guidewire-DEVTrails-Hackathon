@@ -10,6 +10,7 @@ import { createWorkerProfile, getWorkersStatuses, updateWorkerStatus, deleteWork
 export interface Worker {
   id: string;
   name: string;
+  email: string;
   phone: string;
   platform: string;
   city: string;
@@ -28,6 +29,7 @@ export default function WorkersPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [workerToDelete, setWorkerToDelete] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [formData, setFormData] = useState({
@@ -50,6 +52,7 @@ export default function WorkersPage() {
 
       if (workersRes.data) {
         const statuses = statusesRes.success && statusesRes.statuses ? statusesRes.statuses : {};
+        const emails = statusesRes.success && statusesRes.emails ? statusesRes.emails : {};
         const formattedWorkers: Worker[] = workersRes.data.map((w: any) => {
           let platformValue = "N/A", tenureValue = 0, earningsValue = 0;
           if (w.gig_profiles) {
@@ -75,7 +78,7 @@ export default function WorkersPage() {
             }
           }
           return {
-            id: w.id, name: w.full_name || "Unknown", phone: w.mobile || "N/A",
+            id: w.id, name: w.full_name || "Unknown", email: emails[w.id] || "N/A", phone: w.mobile || "N/A",
             platform: platformValue, city: w.city || "Unknown", zone: w.city_zone || "-",
             tenure: tenureValue, dailyAvgEarnings: earningsValue,
             status: statuses[w.id] || "active",
@@ -260,7 +263,8 @@ export default function WorkersPage() {
                 return (
                   <tr
                     key={w.id}
-                    className="border-b border-white/[0.04] hover:bg-white/[0.025] transition-colors duration-150 group"
+                    onClick={() => setSelectedWorker(w)}
+                    className="border-b border-white/[0.04] hover:bg-white/[0.025] transition-colors duration-150 group cursor-pointer"
                     style={{ animationDelay: `${i * 40}ms` }}
                   >
                     <td className="px-6 py-4">
@@ -302,7 +306,7 @@ export default function WorkersPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="relative inline-block">
+                      <div className="relative inline-block" onClick={(e) => e.stopPropagation()}>
                         <select
                           value={w.status}
                           onChange={(e) => handleUpdateStatus(w.id, e.target.value as any)}
@@ -318,7 +322,10 @@ export default function WorkersPage() {
                     <td className="px-6 py-4 text-xs text-gray-600 font-mono">{w.lastActive}</td>
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => confirmDeleteWorker(w.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          confirmDeleteWorker(w.id);
+                        }}
                         className="p-2 text-gray-700 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100"
                         title="Permanently Delete Worker"
                       >
@@ -426,6 +433,98 @@ export default function WorkersPage() {
               >
                 <Trash2 className="w-4 h-4" />
                 Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Worker Modal */}
+      {selectedWorker && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-opacity duration-300 animate-in fade-in" 
+          onClick={() => setSelectedWorker(null)}
+        >
+          <div 
+            className="bg-[#0b0b14] border border-white/10 p-8 rounded-3xl w-full max-w-lg shadow-[0_0_60px_-15px_rgba(99,102,241,0.3)] relative overflow-hidden transition-transform duration-300 animate-in zoom-in-95" 
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Background Glow */}
+            <div className="absolute -top-32 -left-32 w-64 h-64 bg-indigo-500/20 blur-[80px] rounded-full pointer-events-none"></div>
+            <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none"></div>
+
+            <button
+              onClick={() => setSelectedWorker(null)}
+              className="absolute top-5 right-5 p-2 rounded-xl text-gray-500 hover:text-white hover:bg-white/10 transition-all z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-5 mb-8 relative z-10">
+              <div className={`w-16 h-16 rounded-2xl shadow-lg flex items-center justify-center text-2xl font-black text-white bg-gradient-to-br from-indigo-500 to-violet-500 border border-white/10`}>
+                {getInitials(selectedWorker.name)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-2xl font-black text-white truncate mb-1">{selectedWorker.name}</h3>
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm text-indigo-300 font-medium truncate">{selectedWorker.email}</p>
+                  <p className="text-xs text-gray-400 font-mono tracking-wider">{selectedWorker.phone}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-8 relative z-10">
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-colors">
+                <p className="text-xs text-gray-500 font-medium mb-1.5 uppercase tracking-wider">Platform</p>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                  <p className="text-sm text-gray-200 font-semibold">{selectedWorker.platform}</p>
+                </div>
+              </div>
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-colors">
+                <p className="text-xs text-gray-500 font-medium mb-1.5 uppercase tracking-wider">Location</p>
+                <p className="text-sm text-gray-200 font-semibold leading-tight">{selectedWorker.city}</p>
+                <p className="text-[10px] text-gray-500 mt-0.5">{selectedWorker.zone}</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-colors">
+                <p className="text-xs text-gray-500 font-medium mb-1.5 uppercase tracking-wider">Tenure</p>
+                <p className="text-sm text-gray-200 font-semibold">{selectedWorker.tenure} <span className="text-gray-500 font-normal">months</span></p>
+              </div>
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-colors">
+                <p className="text-xs text-gray-500 font-medium mb-1.5 uppercase tracking-wider">Avg Daily Earnings</p>
+                <p className="text-lg font-bold text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]">₹{selectedWorker.dailyAvgEarnings}</p>
+              </div>
+              <div className="col-span-2 p-4 rounded-2xl bg-gradient-to-r from-indigo-500/10 to-transparent border border-indigo-500/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-indigo-300/70 font-medium mb-1.5 uppercase tracking-wider">Coverage Plan</p>
+                    <p className="text-base text-indigo-300 font-bold">{selectedWorker.coverageText}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500 font-medium mb-1.5 uppercase tracking-wider">Status</p>
+                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${
+                      selectedWorker.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 
+                      selectedWorker.status === 'inactive' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 
+                      'bg-red-500/10 text-red-400 border border-red-500/20'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        selectedWorker.status === 'active' ? 'bg-emerald-400' : 
+                        selectedWorker.status === 'inactive' ? 'bg-amber-400' : 'bg-red-400'
+                      }`}></span>
+                      <span className="capitalize">{selectedWorker.status}</span>
+                    </div>
+                    <p className="text-[10px] text-gray-500 mt-1.5">Last active: <span className="text-gray-400">{selectedWorker.lastActive}</span></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end relative z-10">
+              <button
+                onClick={() => setSelectedWorker(null)}
+                className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-white/10 hover:bg-white/20 transition-all duration-200 active:scale-[0.98]"
+              >
+                Close View
               </button>
             </div>
           </div>

@@ -78,12 +78,14 @@ export async function getWorkersStatuses() {
     
     // Map of userId -> status
     const statusMap: Record<string, "active" | "inactive" | "suspended"> = {};
+    const emailMap: Record<string, string> = {};
     usersData.users.forEach((user) => {
       const metaStatus = user.user_metadata?.status;
       statusMap[user.id] = metaStatus || "active";
+      emailMap[user.id] = user.email || "No Email";
     });
     
-    return { success: true, statuses: statusMap };
+    return { success: true, statuses: statusMap, emails: emailMap };
   } catch (err: any) {
     console.error("Error fetching statuses:", err);
     return { success: false, message: err.message || "Failed to fetch statuses." };
