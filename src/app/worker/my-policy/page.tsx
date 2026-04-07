@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase-browser";
-import { ShieldCheck, Calendar, IndianRupee, Zap, Loader2, PlusCircle, Check, Sparkles } from "lucide-react";
+import { ShieldCheck, Calendar, IndianRupee, Zap, Loader2, PlusCircle, Check, Sparkles, Trash2 } from "lucide-react";
+import { removeWorkerPolicyAction } from "./actions";
 
 export default function MyPolicyPage() {
   const [activePolicies, setActivePolicies] = useState<any[]>([]);
@@ -9,6 +10,7 @@ export default function MyPolicyPage() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [addingId, setAddingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -57,6 +59,18 @@ export default function MyPolicyPage() {
     setAddingId(null);
   };
 
+  const handleRemovePolicy = async (policyId: string) => {
+    if (!userId) return;
+    setRemovingId(policyId);
+    const result = await removeWorkerPolicyAction(policyId, userId);
+    if (result.success) {
+      fetchData();
+    } else {
+      alert("Failed to remove policy: " + result.error);
+    }
+    setRemovingId(null);
+  };
+
   if (loading) return (
     <div className="mp-loading">
       <Loader2 size={28} className="mp-spin" />
@@ -103,8 +117,30 @@ export default function MyPolicyPage() {
                   </div>
                   <span className="mp-tier-chip" style={{ background: theme.badge + '22', color: theme.accent, border: `1px solid ${theme.badge}44` }}>
                     {product.tier}
-                  </span>
-                </div>
+                  </span>                  <button
+                    onClick={() => handleRemovePolicy(row.id)}
+                    disabled={removingId === row.id}
+                    className="mp-remove-btn"
+                    style={{
+                      marginLeft: 'auto',
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      padding: '8px 12px', background: 'rgba(239,68,68,0.08)',
+                      border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444',
+                      borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+                      cursor: removingId === row.id ? 'not-allowed' : 'pointer',
+                      opacity: removingId === row.id ? 0.6 : 1,
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
+                  >
+                    {removingId === row.id ? (
+                      <Loader2 size={14} className="mp-spin" />
+                    ) : (
+                      <Trash2 size={14} />
+                    )}
+                    Remove
+                  </button>                </div>
 
                 <div className="mp-policy-stats">
                   <div className="mp-stat">
