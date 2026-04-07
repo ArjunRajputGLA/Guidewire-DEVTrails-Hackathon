@@ -1,22 +1,28 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import LandingPage from "./components/LandingPage";
 
 export default function HomePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [showLanding, setShowLanding] = useState(false);
 
   useEffect(() => {
     if (loading) return;
     if (!user) {
-      router.replace("/login");
+      setShowLanding(true);
     } else if (user.role === "admin") {
       router.replace("/admin/dashboard");
     } else {
       router.replace("/worker/dashboard");
     }
   }, [user, loading, router]);
+
+  if (showLanding) {
+    return <LandingPage />;
+  }
 
   return (
     <div className="auth-page">
