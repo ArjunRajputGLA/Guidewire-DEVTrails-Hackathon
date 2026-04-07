@@ -9,25 +9,25 @@ import { useAuth } from '@/context/AuthContext'
 export default function WorkerLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { user: authUser } = useAuth()
+  const { user: authUser, loading: authLoading, logout } = useAuth()
   const [checking, setChecking] = useState(true)
   const [firstName, setFirstName] = useState<string>('Partner')
   const [isExpanded, setIsExpanded] = useState(true)
 
   useEffect(() => {
-    const check = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.replace('/login'); return; }
-      const profile = await supabase.from('worker_profiles').select('full_name').eq('id', user.id).single()
-      if (profile.data?.full_name) setFirstName(profile.data.full_name.split(' ')[0])
-      setChecking(false)
+    if (authLoading) return;
+    if (!authUser) {
+      router.replace('/login');
+    } else {
+      if (authUser.name) {
+        setFirstName(authUser.name.split(' ')[0]);
+      }
+      setChecking(false);
     }
-    check()
-  }, [router])
+  }, [authUser, authLoading, router])
 
   const handleSignout = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
+    await logout()
   }
 
   if (checking) return (

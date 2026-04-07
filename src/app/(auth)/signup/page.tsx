@@ -1,9 +1,13 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase-browser'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/context/AuthContext'
 
 export default function SignupPage() {
+  const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -12,6 +16,16 @@ export default function SignupPage() {
   const [success, setSuccess] = useState(false)
   const [showPass, setShowPass] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (user.role === 'admin') {
+        router.replace('/admin/dashboard')
+      } else {
+        router.replace('/worker/dashboard')
+      }
+    }
+  }, [user, authLoading, router])
 
   const handleSignup = async () => {
     setError('')
@@ -224,18 +238,33 @@ export default function SignupPage() {
           backgroundSize: '48px 48px',
         }} />
 
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: 11,
-            background: 'linear-gradient(135deg, #f97316, #dc2626)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 800, fontSize: 18, boxShadow: '0 4px 14px rgba(249,115,22,0.35)',
-          }}>G</div>
-          <span style={{
-            fontFamily: '"Bricolage Grotesque", sans-serif',
-            fontWeight: 800, fontSize: 18, letterSpacing: '-0.5px',
-          }}>GigShield</span>
+        {/* Logo and Back Link */}
+        <div style={{ position: 'relative', zIndex: 50 }}>
+          <button onClick={() => window.location.href = '/'} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            color: 'rgba(255,255,255,0.4)', fontSize: 13,
+            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+            marginBottom: 24,
+            fontFamily: '"Outfit", sans-serif', fontWeight: 500,
+            transition: 'color 0.2s',
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
+          onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}>
+            <span>←</span> Back to home
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
+            <div style={{
+              width: 38, height: 38, borderRadius: 11,
+              background: 'linear-gradient(135deg, #f97316, #dc2626)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 800, fontSize: 18, boxShadow: '0 4px 14px rgba(249,115,22,0.35)',
+            }}>G</div>
+            <span style={{
+              fontFamily: '"Bricolage Grotesque", sans-serif',
+              fontWeight: 800, fontSize: 18, letterSpacing: '-0.5px',
+            }}>GigShield</span>
+          </div>
         </div>
 
         {/* Hero copy */}

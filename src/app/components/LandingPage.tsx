@@ -6,8 +6,10 @@ import CountUp from 'react-countup';
 import burgerImg from './burger.png';
 import pizzaImg from './pizza.png';
 import dumplingsImg from './dumplings.png';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Home() {
+  const { user } = useAuth();
   const primaryColor = "#ff4d5a";
   const secondaryColor = "#ff7a18";
   return (
@@ -30,10 +32,18 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-2 md:gap-4">
-              <Link href="/login" className="hidden sm:inline-flex px-4 md:px-5 py-2.5 text-slate-600 hover:text-slate-900 font-semibold text-sm transition-colors">Log in</Link>
-              <Link href="/signup" className="bg-slate-900 hover:bg-[#ff4d5a] text-white px-5 md:px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 shadow-md shadow-slate-900/20 hover:shadow-[#ff4d5a]/30 hover:-translate-y-0.5">
-                Join Now
-              </Link>
+              {user ? (
+                <Link href={user.role === 'admin' ? "/admin/dashboard" : "/worker/dashboard"} className="bg-slate-900 hover:bg-[#ff4d5a] text-white px-5 md:px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 shadow-md shadow-slate-900/20 hover:shadow-[#ff4d5a]/30 hover:-translate-y-0.5">
+                  Go to Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link href="/login" className="hidden sm:inline-flex px-4 md:px-5 py-2.5 text-slate-600 hover:text-slate-900 font-semibold text-sm transition-colors">Log in</Link>
+                  <Link href="/signup" className="bg-slate-900 hover:bg-[#ff4d5a] text-white px-5 md:px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 shadow-md shadow-slate-900/20 hover:shadow-[#ff4d5a]/30 hover:-translate-y-0.5">
+                    Join Now
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -356,7 +366,7 @@ export default function Home() {
                 className="flex flex-col items-center group"
               >
                 <div className="w-20 h-20 bg-white border-[4px] border-[#ff7a18]/20 rounded-full flex items-center justify-center text-[#ff7a18] font-bold text-2xl shadow-lg mb-6 group-hover:scale-110 group-hover:border-[#ff7a18]/40 transition-all duration-500">
-                  2
+                
                 </div>
                 <h4 className="text-xl font-bold text-slate-900 mb-3">AI Validates Data</h4>
                 <p className="text-slate-500 text-sm max-w-xs">Our algorithms cross-check images, location, and weather data instantly for fast approval.</p>

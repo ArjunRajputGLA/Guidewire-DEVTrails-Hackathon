@@ -15,7 +15,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signup: (name: string, email: string, password: string, role: "admin" | "worker") => { success: boolean; error?: string };
   updateProfilePic: (picUrl: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -194,10 +194,16 @@ const updateProfilePic = async (picUrl: string) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      const { supabase } = await import("@/lib/supabase-browser");
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Error signing out from Supabase:", err);
+    }
     setUser(null);
     localStorage.removeItem("gigshield_user");
-    router.push("/login");
+    window.location.href = "/login";
   };
 
   return (
