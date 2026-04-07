@@ -75,6 +75,11 @@ async function checkWeather(lat: number, lon: number, disruptionType: string) {
     const response = await axios.get(
       `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${WEATHER_API_KEY}`
     );
+    
+    if (!response || !response.data || !response.data.weather) {
+      return 0;
+    }
+    
     const weatherConditions = response.data.weather.map((w: any) => w.main.toLowerCase());
 
     let mismatch = 1;
@@ -143,8 +148,7 @@ router.post("/", async (req: Request, res: Response) => {
       const onboardCity = userProfile.city?.toLowerCase() || "";
       const claimCity = location.city.toLowerCase();
       if (onboardCity && !claimCity.includes(onboardCity) && !onboardCity.includes(claimCity)) {
-        locationRisk = 1; // High risk if city doesn't match
-        reasons.push("Claim location city does not match registered onboarding city");
+        return res.status(400).json({ status: "error", message: `Claim denied: Your current location (${location.city}) does not match your registered location (${userProfile.city}).` });
       }
     }
 

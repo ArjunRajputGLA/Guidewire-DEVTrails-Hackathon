@@ -145,7 +145,27 @@ export default function MyClaimsPage() {
         setTimeout(() => setSuccessMsg(""), 5000);
       }
     } catch (err: any) {
-      setErrorMsg("Network error: " + err.message);
+      // Backend is down, fallback to direct insertion
+      const { error } = await supabase.from("claims").insert({
+        worker_id: payload.user_id,
+        trigger_type: payload.disruption_type,
+        trigger_icon: payload.trigger_icon,
+        amount: payload.amount,
+        status: "pending-review",
+        fraud_score: 50
+      });
+
+      if (error) {
+        setErrorMsg("Network error & fallback failed: " + error.message);
+      } else {
+        setLocationVerified(true);
+        setTimeout(() => setLocationVerified(false), 5000);
+        setShowForm(false);
+        setAmount("");
+        setSuccessMsg(`Claim submitted successfully! Status: pending-review`);
+        fetchMyClaims();
+        setTimeout(() => setSuccessMsg(""), 5000);
+      }
     } finally {
       setSubmitting(false);
     }

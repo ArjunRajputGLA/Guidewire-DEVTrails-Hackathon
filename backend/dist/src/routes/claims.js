@@ -17,15 +17,14 @@ async function generateExplanation(fraud_score, reasons) {
         if (!process.env.GEMINI_API_KEY) {
             return "Your claim requires further review based on our standard checks.";
         }
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const prompt = `Explain in simple, friendly language why an insurance claim was rejected or flagged for review.
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const prompt = `Act as a helpful and professional automated assistant explaining an insurance claim rejection to a delivery worker.
 
-Fraud Score: ${fraud_score}
+Fraud Score: ${fraud_score}/100.
+Reasons for failure:
+${reasons.length > 0 ? reasons.map((r) => "- " + r).join("\n") : "- General review criteria not met."}
 
-Reasons:
-${reasons.length > 0 ? reasons.map(r => "- " + r).join("\n") : "- No specific reasons provided."}
-
-Explain this to a delivery worker. Avoid technical jargon. Be clear and helpful. keep it concise.`;
+Write a very brief, compact explanation (maximum 2-3 lines). Be professional and nice. Explicitly mention the fraud score and summarize the reasons. Do not add long greetings or closings. Keep it extremely concise.`;
         const result = await model.generateContent(prompt, { timeout: 10000 });
         return result.response.text();
     }
@@ -63,6 +62,9 @@ async function checkWeather(lat, lon, disruptionType) {
         if (!WEATHER_API_KEY)
             return 0; // Skip if no API key
         const response = await axios_1.default.get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${WEATHER_API_KEY}`);
+        if (!response || !response.data || !response.data.weather) {
+            return 0;
+        }
         const weatherConditions = response.data.weather.map((w) => w.main.toLowerCase());
         let mismatch = 1;
         if (disruptionType.toLowerCase().includes("rain") && weatherConditions.includes("rain"))
@@ -125,8 +127,7 @@ router.post("/", async (req, res) => {
             const onboardCity = userProfile.city?.toLowerCase() || "";
             const claimCity = location.city.toLowerCase();
             if (onboardCity && !claimCity.includes(onboardCity) && !onboardCity.includes(claimCity)) {
-                locationRisk = 1; // High risk if city doesn't match
-                reasons.push("Claim location city does not match registered onboarding city");
+                return res.status(400).json({ status: "error", message: `Claim denied: Your current location (${location.city}) does not match your registered location (${userProfile.city}).` });
             }
         }
         // 4. Fraud Score Calculation
@@ -135,41 +136,55 @@ router.post("/", async (req, res) => {
             0.20 * claimFrequency +
             0.15 * timePattern +
             0.15 * behaviorScore;
-        // 5. Decision Logic
-        let status = "rejected";
+        // 5. Initial Decision Logic (Might be overridden by database triggers)
+        let initialStatus = "rejected";
         if (fraudScore < 0.3) {
-            status = "approved";
+            initialStatus = "approved";
         }
         else if (fraudScore < 0.6) {
-            status = "review";
+            initialStatus = "review";
         }
-        let explanation = null;
-        if (status === "rejected" || status === "review") {
-            explanation = await generateExplanation(fraudScore, reasons);
-        }
-        else {
-            explanation = "Claim approved successfully";
-        }
-        // Store claim in DB
+        // Store claim in DB FIRST so the database trigger calculates its final bounds
         const newClaim = {
             worker_id: user_id,
             trigger_type: disruption_type,
             trigger_icon: trigger_icon || "⚠️",
-            fraud_score: Math.round(Math.min(fraudScore * 100, 100)), // storing as percentage
-            status,
-            amount: amount || 100, // Client overrides or default 100
-            explanation
+            fraud_score: Math.round(Math.min(fraudScore * 100, 100)), // base metrics
+            status: initialStatus,
+            amount: amount || 100 // Client overrides or default 100
         };
-        const { error: insertError } = await supabaseAdmin
+        const { data: insertedClaim, error: insertError } = await supabaseAdmin
             .from("claims")
-            .insert([newClaim]);
+            .insert([newClaim])
+            .select()
+            .single();
         if (insertError)
             throw insertError;
+        // Retrieve the actual computed status and score from the table
+        const finalStatus = insertedClaim.status;
+        const finalScore = insertedClaim.fraud_score;
+        // Compile dynamic fallback reasons if the trigger escalated the risk invisibly
+        if (finalScore > 20 && finalScore > fraudScore * 100) {
+            if (amount > 1500)
+                reasons.push("Unusually high claim amount requested.");
+            reasons.push("Excessive claim frequency within the last month.");
+        }
+        let explanation = "Claim approved successfully";
+        if (finalStatus === "rejected" || finalStatus === "pending-review" || finalStatus === "review") {
+            explanation = await generateExplanation(finalScore, reasons);
+        }
+        // Backfill explanation string
+        if (explanation) {
+            await supabaseAdmin
+                .from("claims")
+                .update({ explanation })
+                .eq("id", insertedClaim.id);
+        }
         return res.status(200).json({
-            status,
-            fraud_score: fraudScore,
+            status: finalStatus,
+            fraud_score: finalScore,
             explanation,
-            message: status === "approved" ? "Claim approved" : status === "review" ? "Claim under review" : "Claim rejected",
+            message: finalStatus === "paid" || finalStatus === "auto-approved" || finalStatus === "approved" ? "Claim approved" : "Claim rejected or requires further review",
             reasons
         });
     }

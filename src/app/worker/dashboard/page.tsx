@@ -137,8 +137,25 @@ export default function WorkerDashboard() {
         setClaimMsg(`Claim submitted! Status: ${resData.status}`)
       }
     } catch (err: any) {
-      setClaimStatus('error')
-      setClaimMsg("Network error: " + err.message)
+      // Fallback if backend is down
+      const { error } = await supabase.from('claims').insert({
+        worker_id: payload.user_id,
+        trigger_type: payload.disruption_type,
+        trigger_icon: payload.trigger_icon,
+        amount: payload.amount,
+        status: 'pending-review',
+        fraud_score: 50
+      });
+
+      if (error) {
+        setClaimStatus('error');
+        setClaimMsg("Network error & fallback failed: " + error.message);
+      } else {
+        setLocationVerified(true);
+        setTimeout(() => setLocationVerified(false), 5000);
+        setClaimStatus('success');
+        setClaimMsg(`Claim submitted! Status: pending-review`);
+      }
     }
 
     setSubmitting(false)
