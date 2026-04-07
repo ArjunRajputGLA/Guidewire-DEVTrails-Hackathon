@@ -95,7 +95,12 @@ export default function WorkersPage() {
     }
   };
 
-  useEffect(() => { fetchWorkers(); }, []);
+  useEffect(() => { 
+    fetchWorkers();
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("search");
+    if (q) setSearch(q);
+  }, []);
 
   const handleAddWorker = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,7 +149,9 @@ export default function WorkersPage() {
   };
 
   const filtered = workers.filter((w) => {
-    const matchSearch = w.name.toLowerCase().includes(search.toLowerCase()) || w.city.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = w.name.toLowerCase().includes(search.toLowerCase()) || 
+      w.city.toLowerCase().includes(search.toLowerCase()) || 
+      w.phone.includes(search);
     const matchStatus = statusFilter === "all" || w.status === statusFilter;
     return matchSearch && matchStatus;
   });
