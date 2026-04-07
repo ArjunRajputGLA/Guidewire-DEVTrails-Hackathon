@@ -41,7 +41,7 @@ export default function TriggersPage() {
 
       if (profilesError) throw new Error(`Supabase query failed: ${profilesError.message}`);
 
-      let allProfiles = profilesData || [];
+      const allProfiles = profilesData || [];
 
       if (allProfiles.length === 0) {
         setTriggers([]);

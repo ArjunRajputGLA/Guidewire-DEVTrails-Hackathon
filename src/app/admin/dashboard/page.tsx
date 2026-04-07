@@ -67,7 +67,7 @@ export default function AdminDashboardPage() {
 
         if (profilesError) throw profilesError;
 
-        let allProfiles = profilesData || [];
+        const allProfiles = profilesData || [];
 
         if (allProfiles.length === 0) {
           setActiveTriggers([]);
