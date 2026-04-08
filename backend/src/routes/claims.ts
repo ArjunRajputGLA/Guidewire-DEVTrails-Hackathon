@@ -17,6 +17,37 @@ const supabaseAdmin = createClient(
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
+// -------------------------------------------------------
+// Helper: Create Notification
+// -------------------------------------------------------
+const ADMIN_UUID = "2135b572-1dc8-4e4a-825f-b0c4f074d886";
+
+async function createAdminNotification(title: string, message: string, type: "success" | "error" | "info" | "warning" = "info") {
+  try {
+    await supabaseAdmin.from("notifications").insert([{
+      user_id: ADMIN_UUID,
+      title,
+      message,
+      type
+    }]);
+  } catch (error) {
+    console.error("Error creating admin notification:", error);
+  }
+}
+
+async function createNotification(userId: string, title: string, message: string, type: "success" | "error" | "info" | "warning" = "info") {
+  try {
+    await supabaseAdmin.from("notifications").insert([{
+      user_id: userId,
+      title,
+      message,
+      type
+    }]);
+  } catch (error) {
+    console.error("Failed to create notification:", error);
+  }
+}
+
 async function generateExplanation(fraud_score: number, reasons: string[]): Promise<string> {
   try {
     if (!process.env.GEMINI_API_KEY) {
@@ -209,6 +240,19 @@ router.post("/", async (req: Request, res: Response) => {
         .eq("id", insertedClaim.id);
     }
 
+    // 6. Trigger Real-Time Notification
+    await createNotification(user_id, "Claim Submitted", "Your claim has been submitted successfully.", "info");
+    await createAdminNotification("New Claim Submitted", "A worker has submitted a new claim.", "warning");
+
+    if (finalStatus === "approved" || finalStatus === "auto-approved" || finalStatus === "paid") {
+      await createNotification(user_id, "Claim Approved", "Your claim has been approved and payout initiated.", "success");
+      await createNotification(user_id, "Payout Completed", `Amount of ₹${amount || 100} has been credited successfully.`, "success");
+    } else if (finalStatus === "rejected") {
+      await createNotification(user_id, "Claim Rejected", explanation || "Your claim was rejected.", "error");
+    } else {
+      await createNotification(user_id, "Claim Under Review", "Your claim is currently under manual review.", "info");
+    }
+
     return res.status(200).json({
       status: finalStatus,
       fraud_score: finalScore,
@@ -297,6 +341,19 @@ router.post("/submit", async (req: Request, res: Response) => {
     if (insertError) {
       console.error("Insert error:", insertError);
       return res.status(500).json({ error: "Failed to insert claim" });
+    }
+
+    const finalStatus = insertedClaim.status;
+    await createNotification(worker_id, "Claim Submitted", "Your claim has been submitted successfully.", "info");
+    await createAdminNotification("New Claim Submitted", "A worker has submitted a new claim.", "warning");
+
+    if (finalStatus === "approved" || finalStatus === "auto-approved" || finalStatus === "paid") {
+      await createNotification(worker_id, "Claim Approved", "Your claim has been approved and payout initiated.", "success");
+      await createNotification(worker_id, "Payout Completed", `Amount of ₹${amount} has been credited successfully.`, "success");
+    } else if (finalStatus === "rejected") {
+      await createNotification(worker_id, "Claim Rejected", "Your claim was rejected.", "error");
+    } else {
+      await createNotification(worker_id, "Claim Under Review", "Your claim is currently under manual review.", "info");
     }
 
     return res.status(200).json({ 

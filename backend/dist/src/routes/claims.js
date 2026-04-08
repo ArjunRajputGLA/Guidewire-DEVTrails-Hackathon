@@ -12,6 +12,22 @@ dotenv_1.default.config();
 const router = (0, express_1.Router)();
 const supabaseAdmin = (0, supabase_js_1.createClient)(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 const genAI = new generative_ai_1.GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+// -------------------------------------------------------
+// Helper: Create Notification
+// -------------------------------------------------------
+async function createNotification(userId, title, message, type = "info") {
+    try {
+        await supabaseAdmin.from("notifications").insert([{
+                user_id: userId,
+                title,
+                message,
+                type
+            }]);
+    }
+    catch (error) {
+        console.error("Failed to create notification:", error);
+    }
+}
 async function generateExplanation(fraud_score, reasons) {
     try {
         if (!process.env.GEMINI_API_KEY) {
@@ -180,6 +196,18 @@ router.post("/", async (req, res) => {
                 .update({ explanation })
                 .eq("id", insertedClaim.id);
         }
+        // 6. Trigger Real-Time Notification
+        await createNotification(user_id, "Claim Submitted", "Your claim has been submitted successfully.", "info");
+        if (finalStatus === "approved" || finalStatus === "auto-approved" || finalStatus === "paid") {
+            await createNotification(user_id, "Claim Approved", "Your claim has been approved and payout initiated.", "success");
+            await createNotification(user_id, "Payout Completed", `Amount of ₹${amount || 100} has been credited successfully.`, "success");
+        }
+        else if (finalStatus === "rejected") {
+            await createNotification(user_id, "Claim Rejected", explanation || "Your claim was rejected.", "error");
+        }
+        else {
+            await createNotification(user_id, "Claim Under Review", "Your claim is currently under manual review.", "info");
+        }
         return res.status(200).json({
             status: finalStatus,
             fraud_score: finalScore,
@@ -254,6 +282,18 @@ router.post("/submit", async (req, res) => {
         if (insertError) {
             console.error("Insert error:", insertError);
             return res.status(500).json({ error: "Failed to insert claim" });
+        }
+        const finalStatus = insertedClaim.status;
+        await createNotification(worker_id, "Claim Submitted", "Your claim has been submitted successfully.", "info");
+        if (finalStatus === "approved" || finalStatus === "auto-approved" || finalStatus === "paid") {
+            await createNotification(worker_id, "Claim Approved", "Your claim has been approved and payout initiated.", "success");
+            await createNotification(worker_id, "Payout Completed", `Amount of ₹${amount} has been credited successfully.`, "success");
+        }
+        else if (finalStatus === "rejected") {
+            await createNotification(worker_id, "Claim Rejected", "Your claim was rejected.", "error");
+        }
+        else {
+            await createNotification(worker_id, "Claim Under Review", "Your claim is currently under manual review.", "info");
         }
         return res.status(200).json({
             message: "Claim submitted successfully",

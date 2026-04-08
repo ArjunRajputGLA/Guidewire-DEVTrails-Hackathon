@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { Toaster } from "react-hot-toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,13 @@ export default function RootLayout({
     >
       <body className="min-h-full">
         <AuthProvider>{children}</AuthProvider>
+        <Toaster position="top-right" toastOptions={{
+          style: {
+            background: '#1f212e',
+            color: '#fff',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }
+        }} />
       </body>
     </html>
   );

@@ -1,7 +1,8 @@
 "use client";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Bell, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
+import NotificationBell from "./NotificationBell";
 
 const pageTitles: Record<string, string> = {
   "/worker/dashboard": "Dashboard",
@@ -27,10 +28,7 @@ export default function WorkerHeader() {
 
       <div className="flex items-center gap-4">
         {/* Notifications */}
-        <button className="relative p-2 rounded-xl hover:bg-white/5 transition-colors">
-          <Bell className="w-5 h-5 text-gray-400" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-        </button>
+        <NotificationBell />
 
         {/* Logout */}
         <button

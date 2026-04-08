@@ -54,16 +54,34 @@ export default function ClaimsPage() {
     fetchClaims();
   }, []);
 
-  const updateClaimStatus = async (id: string, status: string) => {
+  const updateClaimStatus = async (claim: any, status: string) => {
     const { error, data } = await supabase
       .from("claims")
       .update({ status })
-      .eq("id", id);
+      .eq("id", claim.id);
 
     if (error) {
       console.error(`Error updating claim to ${status}:`, error);
       alert("Failed to update status. Check permissions or network. " + error.message);
     } else {
+      // Admin update notification insert
+      if (claim.worker_id) {
+        if (status === "paid") {
+          await supabase.from("notifications").insert([{
+            user_id: claim.worker_id,
+            title: "Claim Approved",
+            message: `Your claim of ₹${claim.amount || 100} has been approved.`,
+            type: "success"
+          }]);
+        } else if (status === "rejected") {
+          await supabase.from("notifications").insert([{
+            user_id: claim.worker_id,
+            title: "Claim Rejected",
+            message: "Your claim was reviewed and rejected by the admin.",
+            type: "error"
+          }]);
+        }
+      }
       fetchClaims();
     }
   };
@@ -315,13 +333,13 @@ export default function ClaimsPage() {
                       {claim.status === "pending-review" && (
                         <div className="flex gap-1.5">
                           <button
-                            onClick={() => updateClaimStatus(claim.id, "paid")}
+                            onClick={() => updateClaimStatus(claim, "paid")}
                             className="px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-xs font-semibold border border-emerald-500/20 transition-all duration-200 hover:scale-105 active:scale-95"
                           >
                             ✓ Approve
                           </button>
                           <button
-                            onClick={() => updateClaimStatus(claim.id, "rejected")}
+                            onClick={() => updateClaimStatus(claim, "rejected")}
                             className="px-3 py-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 text-xs font-semibold border border-red-500/20 transition-all duration-200 hover:scale-105 active:scale-95"
                           >
                             ✕ Reject
