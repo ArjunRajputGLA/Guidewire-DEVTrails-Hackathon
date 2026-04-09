@@ -238,7 +238,7 @@ export default function Home() {
             <div className="hidden lg:flex items-center gap-1 p-1 bg-slate-100/70 rounded-full">
               <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="px-4 py-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-white rounded-full font-medium transition-all hover:shadow-sm">How it Works</a>
               <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="px-4 py-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-white rounded-full font-medium transition-all hover:shadow-sm">Features</a>
-              <a href="#stats" onClick={(e) => scrollToSection(e, 'stats')} className="px-4 py-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-white rounded-full font-medium transition-all hover:shadow-sm">Impact</a>
+              <a href="#stats" onClick={(e) => scrollToSection(e, 'stats')} className="px-4 py-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-white rounded-full font-medium transition-all hover:shadow-sm">Coverage</a>
             </div>
 
             {/* Right CTAs */}
@@ -398,7 +398,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats Section */}
+      {/* Coverage Details Section */}
       <section id="stats" className="py-8 relative z-20 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-[-24px]">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
@@ -410,31 +410,31 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-0 divide-y md:divide-y-0 md:divide-x divide-slate-100">
             {[
               {
-                icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>,
-                color: "#ff4d5a", bg: "bg-rose-50 group-hover:bg-[#ff4d5a]",
-                end: 300000, suffix: "+", sep: ",", label: "Workers Protected"
+                icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>,
+                color: "#3b82f6", bg: "bg-blue-50 group-hover:bg-blue-500",
+                title: "Parametric Triggers", desc: "Auto-payouts based on exact 50mm+ rainfall, 45°C+ heat indexes, and platform downtime."
               },
               {
-                icon: <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></>,
-                color: "#ff7a18", bg: "bg-orange-50 group-hover:bg-[#ff7a18]",
-                end: 800, suffix: "+", sep: ",", label: "Cities Covered"
+                icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>,
+                color: "#22c55e", bg: "bg-green-50 group-hover:bg-green-500",
+                title: "Instant UPI Payouts", desc: "Approved claims are credited directly to your connected UPI ID within 5 minutes."
               },
               {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>,
-                color: "#22c55e", bg: "bg-green-50 group-hover:bg-green-500",
-                end: 1, suffix: "M+", sep: "", label: "Claims Processed"
+                color: "#ff7a18", bg: "bg-orange-50 group-hover:bg-[#ff7a18]",
+                title: "Affordable & Fast", desc: "Start protecting your income loop securely from just ₹29/week with a 5-step secure KYC."
               }
-            ].map((stat, i) => (
-              <div key={i} className="flex flex-col items-center justify-center pt-6 md:pt-0 md:px-8 hover:scale-105 transition-transform duration-500 ease-out group cursor-default">
-                <div className={`w-12 h-12 ${stat.bg} rounded-2xl flex items-center justify-center mb-4 transition-colors duration-300`}>
-                  <svg className={`w-6 h-6 text-[${stat.color}] group-hover:text-white transition-colors duration-300`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {stat.icon}
+            ].map((detail, i) => (
+              <div key={i} className="flex flex-col items-center text-center pt-6 md:pt-0 md:px-8 hover:scale-105 transition-transform duration-500 ease-out group cursor-default">
+                <div className={`w-12 h-12 ${detail.bg} rounded-2xl flex items-center justify-center mb-4 transition-colors duration-300`}>
+                  <svg className={`w-6 h-6 text-[${detail.color}] group-hover:text-white transition-colors duration-300`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {detail.icon}
                   </svg>
                 </div>
-                <h3 className="text-4xl font-display font-bold text-slate-900 mb-1 tracking-tight">
-                  <CountUp end={stat.end} duration={2.5} separator={stat.sep} enableScrollSpy scrollSpyOnce />{stat.suffix}
+                <h3 className="text-xl font-bold text-slate-900 mb-2 tracking-tight">
+                  {detail.title}
                 </h3>
-                <p className="text-sm text-slate-500 font-medium">{stat.label}</p>
+                <p className="text-sm text-slate-500 font-medium leading-relaxed">{detail.desc}</p>
               </div>
             ))}
           </div>
@@ -573,7 +573,7 @@ export default function Home() {
                   style={{background: 'linear-gradient(135deg, #ff4d5a, #ff7a18)'}}>
                   G
                 </div>
-                <span className="font-bold text-lg tracking-tight text-slate-900">GigGuard</span>
+                <span className="font-bold text-lg tracking-tight text-slate-900">GigShield</span>
               </div>
               <p className="text-slate-400 text-sm max-w-xs leading-relaxed">
                 Smarter, faster, AI-driven insurance designed specifically for the gig economy workforce.
@@ -598,7 +598,7 @@ export default function Home() {
           </div>
           <div className="divider-line mb-6"></div>
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-slate-400 text-sm">&copy; {new Date().getFullYear()} GigGuard. All rights reserved.</p>
+            <p className="text-slate-400 text-sm">&copy; {new Date().getFullYear()} GigShield. All rights reserved.</p>
             <div className="flex gap-5 text-sm text-slate-400">
               <a href="#" className="hover:text-slate-800 transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-slate-800 transition-colors">Terms of Service</a>
@@ -608,4 +608,4 @@ export default function Home() {
       </footer>
     </div>
   );
-}
+} 
