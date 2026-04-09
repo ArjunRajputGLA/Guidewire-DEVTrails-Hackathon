@@ -1,11 +1,12 @@
 "use client";
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import CountUp from 'react-countup';
 import burgerImg from './burger.png';
 import pizzaImg from './pizza.png';
 import dumplingsImg from './dumplings.png';
+import groceryBagImg from './grocery_bag.png';
 import { useAuth } from '@/context/AuthContext';
 
 export default function Home() {
@@ -13,8 +14,28 @@ export default function Home() {
   const primaryColor = "#ff4d5a";
   const secondaryColor = "#ff7a18";
 
+  const { scrollYProgress } = useScroll();
+  const groceryY = useTransform(scrollYProgress, [0, 1], [0, 900]);
+  const groceryRot = useTransform(scrollYProgress, [0, 1], [-12, 100]);
+
+  const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    e.preventDefault();
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#fafaf8] font-sans selection:bg-rose-500 selection:text-white scroll-smooth overflow-x-hidden">
+      
+      {/* Falling Grocery Bag Parallax Element */}
+      <motion.div 
+        className="fixed top-[10%] lg:top-[15%] left-[8%] lg:left-[5%] w-24 h-24 sm:w-28 sm:h-28 z-[100] pointer-events-none"
+        style={{ y: groceryY, rotate: groceryRot }}
+      >
+        <img src={groceryBagImg.src} alt="Grocery Bag" className="w-full h-full object-contain drop-shadow-[0_16px_24px_rgba(0,0,0,0.15)] animate-float" />
+      </motion.div>
 
       <style dangerouslySetInnerHTML={{__html: `
         @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&display=swap');
@@ -207,18 +228,17 @@ export default function Home() {
           <div className="flex justify-between items-center h-14 md:h-[60px]">
             {/* Logo */}
             <div className="flex items-center gap-2.5 cursor-pointer group">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-base shadow-lg group-hover:scale-105 transition-transform duration-300"
-                style={{background: 'linear-gradient(135deg, #ff4d5a 0%, #ff7a18 100%)'}}>
-                G
+              <div className="w-10 h-10 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300 rounded-lg overflow-hidden bg-white">
+                <img src="/favicon.ico" alt="GigShield Logo" className="w-full h-full object-cover" />
               </div>
               <span className="font-bold text-lg tracking-tight text-slate-900">GigShield</span>
             </div>
 
             {/* Center nav */}
             <div className="hidden lg:flex items-center gap-1 p-1 bg-slate-100/70 rounded-full">
-              <a href="#how-it-works" className="px-4 py-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-white rounded-full font-medium transition-all hover:shadow-sm">How it Works</a>
-              <a href="#features" className="px-4 py-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-white rounded-full font-medium transition-all hover:shadow-sm">Features</a>
-              <a href="#stats" className="px-4 py-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-white rounded-full font-medium transition-all hover:shadow-sm">Impact</a>
+              <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="px-4 py-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-white rounded-full font-medium transition-all hover:shadow-sm">How it Works</a>
+              <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="px-4 py-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-white rounded-full font-medium transition-all hover:shadow-sm">Features</a>
+              <a href="#stats" onClick={(e) => scrollToSection(e, 'stats')} className="px-4 py-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-white rounded-full font-medium transition-all hover:shadow-sm">Impact</a>
             </div>
 
             {/* Right CTAs */}
@@ -244,7 +264,7 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-36 pb-16 lg:pt-52 lg:pb-28 overflow-hidden">
+      <section className="relative pt-36 pb-16 lg:pt-52 lg:pb-28">
         {/* Background orbs */}
         <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
           <div className="orb-1 absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full animate-scale-in delay-200"></div>
@@ -293,6 +313,7 @@ export default function Home() {
                   </svg>
                 </Link>
                 <a href="#how-it-works"
+                  onClick={(e) => scrollToSection(e, 'how-it-works')}
                   className="btn-secondary text-slate-800 px-7 py-3.5 rounded-full font-semibold text-base flex items-center justify-center gap-2">
                   <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
@@ -355,14 +376,16 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Floating food items */}
-              <div className="absolute top-[8%] right-[4%] sm:right-[8%] w-24 h-24 sm:w-28 sm:h-28 z-30 animate-float-slow">
+              {/* Floating food items (Bouncing strictly in place) */}
+              <div className="absolute top-[8%] right-[4%] sm:right-[8%] w-24 h-24 sm:w-28 sm:h-28 z-30 pointer-events-none animate-float-slow">
                 <img src={burgerImg.src} alt="Burger" className="w-full h-full object-contain drop-shadow-[0_16px_24px_rgba(0,0,0,0.18)]" />
               </div>
-              <div className="absolute bottom-[12%] right-[-3%] w-28 h-28 lg:w-36 lg:h-36 z-30 animate-rotate-slight">
+
+              <div className="absolute bottom-[12%] right-[-3%] w-28 h-28 lg:w-36 lg:h-36 z-30 pointer-events-none animate-rotate-slight">
                 <img src={pizzaImg.src} alt="Pizza" className="w-full h-full object-contain drop-shadow-[0_16px_24px_rgba(0,0,0,0.18)]" />
               </div>
-              <div className="absolute top-[28%] left-[2%] sm:left-[-2%] w-28 h-28 lg:w-32 lg:h-32 z-30 animate-bounce-subtle">
+
+              <div className="absolute top-[28%] left-[2%] sm:left-[-2%] w-28 h-28 lg:w-32 lg:h-32 z-30 pointer-events-none animate-bounce-subtle">
                 <img src={dumplingsImg.src} alt="Dumplings" className="w-full h-full object-contain drop-shadow-[0_12px_18px_rgba(0,0,0,0.12)]" />
               </div>
 

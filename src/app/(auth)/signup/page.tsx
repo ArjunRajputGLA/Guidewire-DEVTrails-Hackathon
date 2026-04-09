@@ -255,11 +255,12 @@ export default function SignupPage() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
             <div style={{
-              width: 38, height: 38, borderRadius: 11,
-              background: 'linear-gradient(135deg, #f97316, #dc2626)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 800, fontSize: 18, boxShadow: '0 4px 14px rgba(249,115,22,0.35)',
-            }}>G</div>
+              width: 44, height: 44, borderRadius: 12, overflow: 'hidden',
+              background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.3)',
+            }}>
+              <img src="/favicon.ico" alt="GigShield Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
             <span style={{
               fontFamily: '"Bricolage Grotesque", sans-serif',
               fontWeight: 800, fontSize: 18, letterSpacing: '-0.5px',
