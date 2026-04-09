@@ -362,7 +362,7 @@ export default function Home() {
               <div className="absolute bottom-[12%] right-[-3%] w-28 h-28 lg:w-36 lg:h-36 z-30 animate-rotate-slight">
                 <img src={pizzaImg.src} alt="Pizza" className="w-full h-full object-contain drop-shadow-[0_16px_24px_rgba(0,0,0,0.18)]" />
               </div>
-              <div className="absolute top-[28%] left-[-4%] sm:left-[-8%] w-20 h-20 lg:w-24 lg:h-24 z-30 animate-bounce-subtle">
+              <div className="absolute top-[28%] left-[2%] sm:left-[-2%] w-28 h-28 lg:w-32 lg:h-32 z-30 animate-bounce-subtle">
                 <img src={dumplingsImg.src} alt="Dumplings" className="w-full h-full object-contain drop-shadow-[0_12px_18px_rgba(0,0,0,0.12)]" />
               </div>
 
