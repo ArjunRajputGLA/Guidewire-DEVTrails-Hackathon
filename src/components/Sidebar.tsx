@@ -10,7 +10,6 @@ import {
   Activity,
   ShieldAlert,
   Settings,
-  Shield,
   LogOut,
   ChevronLeft,
   ChevronRight
@@ -37,11 +36,8 @@ export default function Sidebar({ isExpanded = true, setIsExpanded }: { isExpand
     >
       {/* Brand */}
       <div className={`relative flex items-center px-4 py-6 border-b border-white/5 ${isExpanded ? "gap-3" : "justify-center"}`}>
-        <div
-          className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center"
-          style={{ background: "linear-gradient(135deg, #6366f1, #a78bfa)" }}
-        >
-          <Shield className="w-5 h-5 text-white" />
+        <div className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center overflow-hidden bg-white">
+          <img src="/favicon.ico" alt="GigShield Logo" className="w-full h-full object-cover" />
         </div>
         {isExpanded && (
           <div className="overflow-hidden whitespace-nowrap">

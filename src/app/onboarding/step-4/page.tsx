@@ -61,6 +61,7 @@ export default function Step4() {
   const platforms = [
     { value: 'zomato', label: 'Zomato', emoji: '🔴', color: '#ef4444' },
     { value: 'swiggy', label: 'Swiggy', emoji: '🟠', color: '#f97316' },
+    { value: 'blinkit', label: 'Blinkit', emoji: '🟡', color: '#facc15' },
     { value: 'both', label: 'Both', emoji: '⚡', color: '#eab308' },
   ]
 
@@ -158,7 +159,7 @@ export default function Step4() {
         <input style={inp} placeholder="e.g. ZM123456789"
           value={form.worker_id_on_platform} onChange={set('worker_id_on_platform')} />
         <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 6 }}>
-          Found in your Zomato/Swiggy partner app → Profile
+          Found in your Zomato/Swiggy/Blinkit partner app → Profile
         </p>
       </div>
 
