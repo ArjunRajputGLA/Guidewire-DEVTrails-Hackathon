@@ -29,6 +29,14 @@ export async function removeWorkerPolicyAction(policyRowId: string, workerId: st
       return { success: false, error: error.message };
     }
     
+    // Add notification
+    await supabaseAdmin.from("notifications").insert([{
+      user_id: workerId,
+      title: "Policy Removed",
+      message: "You have successfully removed a policy coverage.",
+      type: "info"
+    }]);
+
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };

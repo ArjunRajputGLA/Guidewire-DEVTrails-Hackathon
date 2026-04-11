@@ -48,14 +48,23 @@ export default function MyPolicyPage() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const handleAddPolicy = async (productId: string) => {
+  const handleAddPolicy = async (productId: string, productName: string) => {
     if (!userId) return;
     setAddingId(productId);
     const { error } = await supabase.from('worker_policies').insert({
       worker_id: userId, policy_id: productId, status: 'active'
     });
-    if (!error) fetchData();
-    else alert("Failed to add policy: " + error.message);
+    if (!error) {
+      await supabase.from('notifications').insert([{
+        user_id: userId,
+        title: "Policy Subscribed",
+        message: `You have successfully subscribed to ${productName}.`,
+        type: "success"
+      }]);
+      fetchData();
+    } else {
+      alert("Failed to add policy: " + error.message);
+    }
     setAddingId(null);
   };
 
@@ -210,7 +219,7 @@ export default function MyPolicyPage() {
                 </div>
                 <p className="mp-addon-desc">{addon.description}</p>
                 <button
-                  onClick={() => handleAddPolicy(addon.id)}
+                  onClick={() => handleAddPolicy(addon.id, addon.name)}
                   disabled={addingId === addon.id}
                   className="mp-addon-btn"
                 >

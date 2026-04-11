@@ -97,6 +97,17 @@ export default function MyClaimsPage() {
     if (error) {
       setErrorMsg("Failed to delete claim: " + error.message);
     } else {
+      // Add notification for the withdrawal
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        await supabase.from("notifications").insert([{
+          user_id: session.user.id,
+          title: "Claim Withdrawn",
+          message: `Your claim has been successfully withdrawn.`,
+          type: "info"
+        }]);
+      }
+      
       setSuccessMsg("Claim successfully withdrawn.");
       fetchMyClaims();
       setTimeout(() => setSuccessMsg(""), 5000);
@@ -176,6 +187,13 @@ export default function MyClaimsPage() {
       if (error) {
         setErrorMsg("Network error & fallback failed: " + error.message);
       } else {
+        await supabase.from("notifications").insert([{
+          user_id: payload.user_id,
+          title: "Claim Submitted",
+          message: `Your claim has been successfully submitted and is under review.`,
+          type: "info"
+        }]);
+
         setLocationVerified(true);
         setTimeout(() => setLocationVerified(false), 5000);
         setShowForm(false);
