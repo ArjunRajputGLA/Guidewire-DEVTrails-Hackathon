@@ -53,7 +53,9 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
       <aside className={`wl-sidebar ${isExpanded ? 'wl-sidebar--expanded' : 'wl-sidebar--collapsed'}`}>
         {/* Logo */}
         <div className={`wl-logo ${isExpanded ? '' : 'wl-logo--collapsed'}`}>
-          <div className="wl-logo-mark">G</div>
+          <div className="wl-logo-mark">
+            <img src="/favicon.ico" alt="GigShield Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '10px' }} />
+          </div>
           {isExpanded && <span className="wl-logo-text">GigShield</span>}
           <button
             onClick={() => setIsExpanded(!isExpanded)}
@@ -191,11 +193,9 @@ const layoutStyle = `
   }
   .wl-logo--collapsed { justify-content: center; }
   .wl-logo-mark {
-    width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
-    background: linear-gradient(135deg, #f97316, #ea580c);
+    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
     font-weight: 700; font-size: 15px; color: #fff;
-    box-shadow: 0 4px 14px rgba(249,115,22,0.35);
   }
   .wl-logo-text { font-size: 18px; font-weight: 700; color: #fff; letter-spacing: -0.02em; white-space: nowrap; }
 
