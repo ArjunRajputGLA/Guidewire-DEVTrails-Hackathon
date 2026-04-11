@@ -283,6 +283,7 @@ export default function AdminDashboardPage() {
   }
 
   const claimStatusStyle = (status: string) => {
+    if (status === "withdrawn") return "bg-gray-500/10 text-gray-400 border border-gray-500/20";
     if (status === "paid") return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
     if (status === "auto-approved") return "bg-blue-500/10 text-blue-400 border border-blue-500/20";
     if (status === "pending-review") return "bg-amber-500/10 text-amber-400 border border-amber-500/20";

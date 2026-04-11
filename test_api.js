@@ -1,0 +1,1 @@
+fetch('http://localhost:5000/api/claims', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({user_id:'2135b572-1dc8-4e4a-825f-b0c4f074d886', lat:28.7, lon:77.1, disruption_type:'Heavy Rainfall', amount:3500})}).then(r => r.json()).then(console.log).catch(console.error);

@@ -1,0 +1,1 @@
+async function run() { try { const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?key=AIzaSyBjfKb1GSWfy8s_BLJea0n70llmuJIigxc'); const json = await r.json(); console.log(json.models.map(m=>m.name)); } catch (e) { console.error('fetch', e); } } run();

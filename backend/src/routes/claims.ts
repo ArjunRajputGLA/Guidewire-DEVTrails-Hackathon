@@ -54,7 +54,7 @@ async function generateExplanation(fraud_score: number, reasons: string[]): Prom
       return "Your claim requires further review based on our standard checks.";
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const prompt = `Act as a helpful and professional automated assistant explaining an insurance claim rejection to a delivery worker.
 

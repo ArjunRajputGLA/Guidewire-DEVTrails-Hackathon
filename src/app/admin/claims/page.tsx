@@ -131,12 +131,12 @@ export default function ClaimsPage() {
       icon: <XCircle className="w-3.5 h-3.5" />,
       label: "Rejected",
     },
-  };
-
-  const fraudScoreColor = (score: number) => {
-    if (score < 30) return { text: "text-emerald-400", bar: "from-emerald-500 to-emerald-400" };
-    if (score < 60) return { text: "text-amber-400", bar: "from-amber-500 to-amber-400" };
-    return { text: "text-red-400", bar: "from-red-500 to-red-400" };
+      withdrawn: {
+        color: "text-gray-400",
+        bg: "bg-gray-500/10 border border-gray-500/20",
+        icon: <XCircle className="w-3.5 h-3.5" />,
+        label: "Withdrawn",
+      },
   };
 
   const stats = [
@@ -172,7 +172,21 @@ export default function ClaimsPage() {
       bg: "from-red-500/15 to-red-500/5 border-red-500/20",
       accent: "#ef4444",
     },
+      {
+        label: "Withdrawn",
+        value: claims.filter((c) => c.status === "withdrawn").length,
+        icon: <XCircle className="w-5 h-5" />,
+        color: "text-gray-400",
+        bg: "from-gray-500/15 to-gray-500/5 border-gray-500/20",
+        accent: "#9ca3af",
+      },
   ];
+
+  const fraudScoreColor = (score: number) => {
+    if (score < 30) return { text: "text-emerald-400", bar: "from-emerald-500 to-emerald-400" };
+    if (score < 60) return { text: "text-amber-400", bar: "from-amber-500 to-amber-400" };
+    return { text: "text-red-400", bar: "from-red-500 to-red-400" };
+  };
 
   const filteredClaims = claims.filter((claim) => {
     const term = searchQuery.toLowerCase();
@@ -218,7 +232,7 @@ export default function ClaimsPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {stats.map((s, i) => (
           <div
             key={s.label}
@@ -271,8 +285,8 @@ export default function ClaimsPage() {
                     claim.status === "paid" || claim.status === "auto-approved"
                       ? "bg-emerald-500"
                       : claim.status === "pending-review"
-                      ? "bg-amber-500"
-                      : "bg-red-500"
+                      ? "bg-amber-500"                        : claim.status === "withdrawn"
+                        ? "bg-gray-500"                      : "bg-red-500"
                   } opacity-60`}
                 />
 

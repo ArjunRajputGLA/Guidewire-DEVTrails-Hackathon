@@ -71,6 +71,7 @@ export default function MyClaimsPage() {
         .from("claims")
         .select("*")
         .eq("worker_id", user.id)
+        .neq("status", "withdrawn")
         .order("created_at", { ascending: false });
         
       if (!error && userClaims) {
@@ -86,6 +87,22 @@ export default function MyClaimsPage() {
   useEffect(() => {
     fetchMyClaims();
   }, []);
+
+  const handleDeleteClaim = async (claimId: string) => {
+    if (!confirm("Are you sure you want to withdraw this claim?")) return;
+    
+    setLoading(true);
+    const { error } = await supabase.from("claims").update({ status: 'withdrawn' }).eq("id", claimId);
+    
+    if (error) {
+      setErrorMsg("Failed to delete claim: " + error.message);
+    } else {
+      setSuccessMsg("Claim successfully withdrawn.");
+      fetchMyClaims();
+      setTimeout(() => setSuccessMsg(""), 5000);
+    }
+    setLoading(false);
+  };
 
   const handleSubmitClaim = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,7 +169,8 @@ export default function MyClaimsPage() {
         trigger_icon: payload.trigger_icon,
         amount: payload.amount,
         status: "pending-review",
-        fraud_score: 50
+        fraud_score: 50,
+        explanation: "Your claim requires further review based on our standard checks.",
       });
 
       if (error) {
@@ -352,14 +370,35 @@ export default function MyClaimsPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="mc-card-right">
-                      <p className="mc-amount">₹{claim.amount?.toLocaleString("en-IN")}</p>
-                      <span
-                        className="mc-status-chip"
-                        style={{ color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}
+                    <div className="mc-card-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <p className="mc-amount">₹{claim.amount?.toLocaleString("en-IN")}</p>
+                        <span
+                          className="mc-status-chip"
+                          style={{ color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}
+                        >
+                          {cfg.label}
+                        </span>
+                      </div>
+                      <button 
+                        onClick={async () => await handleDeleteClaim(claim.id)}
+                        style={{ 
+                          background: 'transparent', 
+                          border: '1px solid rgba(248, 113, 113, 0.4)', 
+                          borderRadius: '4px',
+                          padding: '2px 8px',
+                          color: '#f87171', 
+                          fontSize: '0.75rem', 
+                          cursor: 'pointer', 
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          transition: 'all 0.2s ease',
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(248, 113, 113, 0.1)'}
+                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                       >
-                        {cfg.label}
-                      </span>
+                        {claim.status === 'pending-review' || claim.status === 'review' ? 'Withdraw' : 'Delete'}
+                      </button>
                     </div>
                   </div>
 
@@ -409,7 +448,7 @@ export default function MyClaimsPage() {
                   </div>
 
                   {/* AI Explanation directly below the claim detail */}
-                  {(claim.status === "rejected" || claim.status === "review" || claim.status === "pending-review") && claim.explanation && (
+                  {claim.explanation && (
                     <div className="mc-ai-explanation">
                       <div className="mc-ai-header">
                           <div className="mc-ai-icon-bg">
@@ -667,6 +706,6 @@ export default function MyClaimsPage() {
   @media (max-width: 600px) {
     .mc-form-grid { grid-template-columns: 1fr; }
     .mc-card-top  { flex-direction: column; align-items: flex-start; }
-    .mc-card-right { text-align: left; }
+    .mc-card-right { align-items: flex-start !important; margin-top: 10px; }
   }
 `;
