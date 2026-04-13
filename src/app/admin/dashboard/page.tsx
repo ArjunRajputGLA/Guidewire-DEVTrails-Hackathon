@@ -28,7 +28,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <p className="text-xs text-gray-500 mb-2 font-medium">{label}</p>
         {payload.map((entry: any) => (
           <p key={entry.name} className="text-sm font-semibold" style={{ color: entry.color }}>
-            {entry.name === "revenue" || entry.name === "claims"
+            {entry.name === "revenue"
               ? `₹${Number(entry.value).toLocaleString()}`
               : entry.value}{" "}
             <span className="text-gray-500 font-normal text-xs">{entry.name}</span>

@@ -70,8 +70,9 @@ export default function WorkerDashboard() {
               setWeatherAlert({ title: 'Snowfall Warning', desc: `Snow accumulation detected in ${city}.`, emoji: '❄️', disruptionType: 'Snowfall' });
             } else if (condition === 'thunderstorm' || condition === 'tornado') {
               setWeatherAlert({ title: 'Severe Storm Alert', desc: `Thunderstorm/severe weather detected in ${city}.`, emoji: '⛈️', disruptionType: 'Severe Storm' });
-            } else if (temp && temp >= 45) {
-              setWeatherAlert({ title: 'Extreme Heat Alert', desc: `Temperatures reaching ${temp}°C in ${city}.`, emoji: '🌡️', disruptionType: 'Extreme Heat' });
+            } else if ((temp && temp > 40) || (weatherData.main?.feels_like && weatherData.main.feels_like >= 40)) {
+              const displayTemp = weatherData.main?.feels_like || temp;
+              setWeatherAlert({ title: 'Extreme Heat Alert', desc: `Temperatures reaching ${displayTemp}°C in ${city}.`, emoji: '🌡️', disruptionType: 'Extreme heat' });
             } else if (aqiTrigger) {
               setWeatherAlert({ title: 'Severe AQI Alert', desc: `Hazardous air quality indicators detected in ${city}.`, emoji: '🌫️', disruptionType: 'Severe AQI' });
             } else {

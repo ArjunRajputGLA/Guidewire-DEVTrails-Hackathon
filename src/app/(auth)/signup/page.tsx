@@ -240,7 +240,7 @@ export default function SignupPage() {
 
         {/* Logo and Back Link */}
         <div style={{ position: 'relative', zIndex: 50 }}>
-          <button onClick={() => window.location.href = '/'} style={{
+          <button suppressHydrationWarning onClick={() => window.location.href = '/'} style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             color: 'rgba(255,255,255,0.4)', fontSize: 13,
             background: 'none', border: 'none', cursor: 'pointer', padding: 0,
@@ -379,6 +379,7 @@ export default function SignupPage() {
               letterSpacing: '0.08em', textTransform: 'uppercase',
             }}>Email Address</label>
             <input
+              suppressHydrationWarning
               className="inp-field"
               type="email" value={email}
               onChange={e => setEmail(e.target.value)}
@@ -395,12 +396,13 @@ export default function SignupPage() {
             }}>Password</label>
             <div style={{ position: 'relative' }}>
               <input
+                suppressHydrationWarning
                 className="inp-field inp-field-pass"
                 type={showPass ? 'text' : 'password'}
                 value={password} onChange={e => setPassword(e.target.value)}
                 placeholder="Min. 8 characters"
               />
-              <button className="show-toggle" onClick={() => setShowPass(p => !p)}>
+              <button suppressHydrationWarning className="show-toggle" onClick={() => setShowPass(p => !p)}>
                 {showPass ? 'Hide' : 'Show'}
               </button>
             </div>
@@ -433,13 +435,14 @@ export default function SignupPage() {
             }}>Confirm Password</label>
             <div style={{ position: 'relative' }}>
               <input
+                suppressHydrationWarning
                 className={`inp-field inp-field-pass${confirm && confirm === password ? ' inp-valid' : ''}`}
                 type={showConfirm ? 'text' : 'password'}
                 value={confirm} onChange={e => setConfirm(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSignup()}
                 placeholder="Repeat your password"
               />
-              <button className="show-toggle" onClick={() => setShowConfirm(p => !p)}>
+              <button suppressHydrationWarning className="show-toggle" onClick={() => setShowConfirm(p => !p)}>
                 {showConfirm ? 'Hide' : 'Show'}
               </button>
             </div>
@@ -457,7 +460,7 @@ export default function SignupPage() {
 
           {/* CTA */}
           <div className="animate-in d5">
-            <button className="btn-create" onClick={handleSignup} disabled={loading}>
+            <button suppressHydrationWarning className="btn-create" onClick={handleSignup} disabled={loading}>
               {loading ? 'Creating account…' : 'Create account →'}
             </button>
 

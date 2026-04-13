@@ -220,7 +220,7 @@ export default function LoginPage() {
 
         {/* Logo and Back Link */}
         <div style={{ position: 'relative', zIndex: 50 }}>
-          <button onClick={() => window.location.href = '/'} style={{
+          <button suppressHydrationWarning onClick={() => window.location.href = '/'} style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             color: 'rgba(255,255,255,0.4)', fontSize: 13,
             background: 'none', border: 'none', cursor: 'pointer', padding: 0,
@@ -355,6 +355,7 @@ export default function LoginPage() {
               letterSpacing: '0.08em', textTransform: 'uppercase',
             }}>Email Address</label>
             <input
+              suppressHydrationWarning
               className="inp-field"
               type="email" value={email}
               onChange={e => setEmail(e.target.value)}
@@ -378,6 +379,7 @@ export default function LoginPage() {
             </div>
             <div style={{ position: 'relative' }}>
               <input
+                suppressHydrationWarning
                 className="inp-field inp-field-pass"
                 type={showPass ? 'text' : 'password'}
                 value={password}
@@ -385,7 +387,7 @@ export default function LoginPage() {
                 onKeyDown={e => e.key === 'Enter' && handleLogin('worker')}
                 placeholder="Enter your password"
               />
-              <button className="show-toggle" onClick={() => setShowPass(p => !p)}>
+              <button suppressHydrationWarning className="show-toggle" onClick={() => setShowPass(p => !p)}>
                 {showPass ? 'Hide' : 'Show'}
               </button>
             </div>
@@ -394,6 +396,7 @@ export default function LoginPage() {
           {/* Action buttons */}
           <div className="animate-in delay-3" style={{ display: 'flex', gap: 10 }}>
             <button
+              suppressHydrationWarning
               className="btn-admin"
               onClick={() => handleLogin('admin')}
               disabled={loading}
@@ -401,6 +404,7 @@ export default function LoginPage() {
               {loading ? '...' : 'Admin'}
             </button>
             <button
+              suppressHydrationWarning
               className="btn-worker"
               onClick={() => handleLogin('worker')}
               disabled={loading}
