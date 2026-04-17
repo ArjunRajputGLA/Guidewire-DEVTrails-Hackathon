@@ -517,6 +517,7 @@ export default function Step1() {
                 onChange={e => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 onKeyDown={e => e.key === 'Enter' && sendOtp()}
                 placeholder="98765 43210"
+                suppressHydrationWarning
                 style={{
                   flex: 1, padding: '14px 16px',
                   background: 'rgba(255,255,255,0.04)',
@@ -581,6 +582,7 @@ export default function Step1() {
               onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
               onKeyDown={e => e.key === 'Enter' && verifyOtp()}
               placeholder="······"
+              suppressHydrationWarning
               style={{
                 width: '100%', padding: '18px 20px',
                 background: otp.length === 6 ? 'rgba(34,197,94,0.05)' : 'rgba(255,255,255,0.04)',

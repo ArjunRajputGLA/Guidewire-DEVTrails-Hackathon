@@ -30,7 +30,14 @@ export default function SignupPage() {
   const handleSignup = async () => {
     setError('')
     if (!email || !password || !confirm) { setError('Please fill in all fields'); return }
+    
+    // Password complexity rules
     if (password.length < 8) { setError('Password must be at least 8 characters'); return }
+    if (!/(?=.*[a-z])/.test(password)) { setError('Password must contain at least one lowercase letter'); return }
+    if (!/(?=.*[A-Z])/.test(password)) { setError('Password must contain at least one uppercase letter'); return }
+    if (!/(?=.*\d)/.test(password)) { setError('Password must contain at least one number'); return }
+    if (!/(?=.*[^A-Za-z0-9])/.test(password)) { setError('Password must contain at least one special character'); return }
+    
     if (password !== confirm) { setError('Passwords do not match'); return }
     setLoading(true)
 
@@ -407,7 +414,7 @@ export default function SignupPage() {
               </button>
             </div>
 
-            {/* Strength meter */}
+            {/* Strength meter and requirements */}
             {password.length > 0 && (
               <div style={{ marginTop: 10 }}>
                 <div style={{ display: 'flex', gap: 5, marginBottom: 6 }}>
@@ -419,9 +426,34 @@ export default function SignupPage() {
                     }} />
                   ))}
                 </div>
-                <span style={{ fontSize: 11, color: strengthColor, fontWeight: 600 }}>
-                  {strengthLabel}
-                </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: strengthColor, fontWeight: 600 }}>
+                    {strengthLabel}
+                  </span>
+                </div>
+                
+                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: password.length >= 8 ? '#22c55e' : 'rgba(255,255,255,0.4)', transition: 'color 0.2s' }}>
+                    <span>{password.length >= 8 ? '✓' : '○'}</span> 
+                    <span>At least 8 characters</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: /(?=.*[A-Z])/.test(password) ? '#22c55e' : 'rgba(255,255,255,0.4)', transition: 'color 0.2s' }}>
+                    <span>{/(?=.*[A-Z])/.test(password) ? '✓' : '○'}</span> 
+                    <span>One uppercase letter (A-Z)</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: /(?=.*[a-z])/.test(password) ? '#22c55e' : 'rgba(255,255,255,0.4)', transition: 'color 0.2s' }}>
+                    <span>{/(?=.*[a-z])/.test(password) ? '✓' : '○'}</span> 
+                    <span>One lowercase letter (a-z)</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: /(?=.*\d)/.test(password) ? '#22c55e' : 'rgba(255,255,255,0.4)', transition: 'color 0.2s' }}>
+                    <span>{/(?=.*\d)/.test(password) ? '✓' : '○'}</span> 
+                    <span>One number (0-9)</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: /(?=.*[^A-Za-z0-9])/.test(password) ? '#22c55e' : 'rgba(255,255,255,0.4)', transition: 'color 0.2s' }}>
+                    <span>{/(?=.*[^A-Za-z0-9])/.test(password) ? '✓' : '○'}</span> 
+                    <span>One special character (!@#$%^&*)</span>
+                  </div>
+                </div>
               </div>
             )}
           </div>
