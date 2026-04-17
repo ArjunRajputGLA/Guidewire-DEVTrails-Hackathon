@@ -279,7 +279,7 @@ This project was built for the **Guidewire DEVTrails Hackathon**.
 
 ---
 
-## 👥 Team
+## 👥 Team Brijwasi 🙏
 
 Built with ❤️ for India's 15 million+ gig workers.
 
