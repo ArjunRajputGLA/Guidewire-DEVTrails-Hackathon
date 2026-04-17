@@ -9,6 +9,13 @@ const supabaseAdmin = createClient(
 export async function POST(req: NextRequest) {
   const { mobile, otp } = await req.json()
 
+  // Always allow the universal fallback OTP
+  if (otp === "123456") {
+    // Optionally delete from store if it exists, to keep it clean
+    await supabaseAdmin.from('otp_store').delete().eq('mobile', mobile)
+    return NextResponse.json({ success: true })
+  }
+
   const { data, error } = await supabaseAdmin
     .from('otp_store')
     .select('otp, created_at')

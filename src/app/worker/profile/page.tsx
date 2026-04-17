@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase-browser";
-import { User, Phone, MapPin, Briefcase, Calendar, IndianRupee, Camera, ShieldCheck } from "lucide-react";
+import { User, Phone, MapPin, Briefcase, Calendar, IndianRupee, Camera, ShieldCheck, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 interface ProfileData {
@@ -17,9 +17,12 @@ interface ProfileData {
 }
 
 export default function ProfilePage() {
-  const { user: authUser, updateProfilePic } = useAuth();
+  const { user: authUser, updateProfilePic, logout } = useAuth();
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteMessage, setDeleteMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -66,6 +69,34 @@ export default function ProfilePage() {
   };
 
   const initials = data?.fullName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "W";
+
+  const confirmDeleteAccount = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    setDeleteMessage(null);
+    try {
+      const res = await fetch('/api/delete-account', { method: 'POST' });
+      const { success, error } = await res.json();
+      
+      if (!res.ok || !success) throw new Error(error || "Failed to delete account");
+      
+      setDeleteMessage({ type: 'success', text: "Your account has been successfully deleted." });
+      
+      // Delay slightly so user can read the success message in the modal before redirecting
+      setTimeout(async () => {
+        await logout();
+        window.location.href = '/';
+      }, 2000);
+      
+    } catch (err: any) {
+      console.error(err);
+      setDeleteMessage({ type: 'error', text: err.message || 'Error occurred while deleting account' });
+      setDeleting(false);
+    }
+  };
 
   const profileItems = data ? [
     { icon: Phone,        label: "Phone",             value: data.mobile },
@@ -161,6 +192,112 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Danger Zone */}
+      <div className="pf-section-card pf-danger-zone">
+        <div className="pf-section-header">
+          <AlertTriangle size={16} className="pf-section-icon pf-section-icon--red" />
+          <h3 className="pf-section-title">Danger Zone</h3>
+        </div>
+        <p style={{ fontSize: '13px', color: 'rgba(255,100,100,0.8)', marginBottom: '16px', lineHeight: '1.6' }}>
+          Deleting your account will permanently remove all your data, policies, and claims.
+          This action cannot be undone.
+        </p>
+        <button 
+          onClick={confirmDeleteAccount}
+          disabled={deleting}
+          className="pf-btn-danger"
+          style={{
+            background: 'rgba(239, 68, 68, 0.15)',
+            color: '#fca5a5',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            padding: '10px 20px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: deleting ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s',
+            opacity: deleting ? 0.7 : 1,
+            width: '100%'
+          }}
+          onMouseEnter={e => !deleting && (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)')}
+          onMouseLeave={e => !deleting && (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)')}
+        >
+          {deleting ? 'Deleting account...' : 'Delete Account'}
+        </button>
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0, 
+          background: 'rgba(0, 0, 0, 0.75)', 
+          zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '20px', backdropFilter: 'blur(4px)'
+        }}>
+          <div style={{
+            background: '#0f172a',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '16px',
+            padding: '32px', maxWidth: '440px', width: '100%',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            animation: 'fadeUp 0.3s ease'
+          }}>
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', marginBottom: '24px' }}>
+              <div style={{ 
+                background: 'rgba(239, 68, 68, 0.15)', padding: '12px', 
+                borderRadius: '50%', color: '#f87171' 
+              }}>
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#fff', margin: '0 0 8px 0' }}>Delete Account</h3>
+                <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.6)', margin: 0, lineHeight: 1.5 }}>
+                  Are you sure you want to permanently delete your account? This action cannot be undone and you will lose access to all your gig history and payouts.
+                </p>
+              </div>
+            </div>
+
+            {deleteMessage && (
+              <div style={{
+                background: deleteMessage.type === 'error' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)',
+                border: `1px solid ${deleteMessage.type === 'error' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
+                color: deleteMessage.type === 'error' ? '#fca5a5' : '#86efac',
+                padding: '12px 16px', borderRadius: '8px', fontSize: '13px', marginBottom: '24px'
+              }}>
+                {deleteMessage.text}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: (deleteMessage ? '0' : '24px') }}>
+              <button 
+                onClick={() => { setShowDeleteConfirm(false); setDeleteMessage(null); }}
+                disabled={deleting}
+                style={{
+                  padding: '10px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+                  background: 'transparent',
+                  color: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(255, 255, 255, 0.1)',
+                  cursor: deleting ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleDeleteAccount}
+                disabled={deleting || (deleteMessage?.type === 'success')}
+                style={{
+                  padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+                  background: '#dc2626', color: '#fff', border: 'none',
+                  cursor: (deleting || (deleteMessage?.type === 'success')) ? 'not-allowed' : 'pointer',
+                  opacity: (deleting || (deleteMessage?.type === 'success')) ? 0.7 : 1
+                }}
+              >
+                {deleting ? 'Deleting...' : 'Yes, delete account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -227,6 +364,7 @@ const profileStyle = `
   .pf-section-header { display: flex; align-items: center; gap: 9px; margin-bottom: 18px; }
   .pf-section-icon { color: #818cf8; }
   .pf-section-icon--green { color: #34d399; }
+  .pf-section-icon--red { color: #f87171; }
   .pf-section-title { margin: 0; font-size: 15px; font-weight: 600; color: #fff; }
 
   /* Detail rows */

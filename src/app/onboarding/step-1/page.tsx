@@ -605,6 +605,12 @@ export default function Step1() {
                 }} />
               ))}
             </div>
+            
+            <div style={{ marginTop: 16, padding: '10px 14px', background: 'rgba(249,115,22,0.1)', border: '1px dashed rgba(249,115,22,0.3)', borderRadius: '10px', textAlign: 'center' }}>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>
+                <span style={{ color: '#fb923c', fontWeight: 600 }}>Note:</span> If the OTP takes too long or fails, you can safely use <strong style={{ color: '#fff' }}>123456</strong> to proceed.
+              </p>
+            </div>
           </div>
 
           <div style={{
