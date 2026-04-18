@@ -1,12 +1,46 @@
 {
   "name": "gigshield-dashboard",
+  "description": "GigShield Desktop Application",
+  "author": "Ayush",
   "version": "0.1.0",
   "private": true,
+  "main": "electron/main.js",
+  "build": {
+    "appId": "com.gigshield.app",
+    "productName": "GigShield",
+    "directories": {
+      "output": "C:/Users/Asus/Desktop/GigShield-App",
+      "buildResources": "public"
+    },
+    "win": {
+      "icon": "public/favicon.ico",
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "GigShield"
+    },
+    "files": [
+      "public/favicon.ico",
+      "electron/**/*",
+      "!node_modules/**/*",
+      "!src/**/*",
+      "!.next/**/*"
+    ],
+    "asar": true
+  },
   "scripts": {
     "dev": "next dev",
+    "dev:electron": "concurrently -k \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "electron:build": "electron-builder --win"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -21,15 +55,20 @@
     "react-countup": "^6.5.3",
     "react-dom": "19.2.4",
     "react-hot-toast": "^2.6.0",
-    "recharts": "^3.8.1"
+    "recharts": "^3.8.1",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "electron": "^41.2.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
+    "jimp": "^1.6.1",
+    "png-to-ico": "^3.0.1",
+    "png2icons": "^2.0.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
