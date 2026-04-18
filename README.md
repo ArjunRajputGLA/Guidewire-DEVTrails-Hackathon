@@ -1,80 +1,160 @@
-# 🛡️ GigShield — Income Protection for Gig Workers
+<div align="center">
 
-> **Parametric insurance designed for delivery partners. Get paid within minutes when heavy rain, extreme heat, or platform outages stop your work.**
+<img src="https://img.shields.io/badge/GigShield-Income%20Protection-6366f1?style=for-the-badge&logo=shield&logoColor=white" alt="GigShield" height="45"/>
 
-[![Next.js](https://img.shields.io/badge/Next.js-16.2-black?logo=next.js)](https://nextjs.org)
-[![Supabase](https://img.shields.io/badge/Supabase-Database%20%26%20Auth-3ECF8E?logo=supabase)](https://supabase.com)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38BDF8?logo=tailwindcss)](https://tailwindcss.com)
+# 🛡️ GigShield
+### *Parametric Income Insurance for India's Gig Workers*
+
+> **Built for the Guidewire DEVTrails 2026 Hackathon**  
+> Protecting 15 million+ gig workers from uncontrollable income disruptions — automatically.
+
+<br/>
+
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com/)
+[![Express.js](https://img.shields.io/badge/Express.js-REST%20API-000000?style=flat-square&logo=express)](https://expressjs.com/)
+
+<br/>
+
+[🚀 Live Demo](#-getting-started) · [📸 Screenshots](#-screenshots) · [🏗️ Architecture](#-architecture) · [📖 Docs](#-parametric-triggers)
 
 ---
 
-## 📌 The Problem
+</div>
 
-Gig workers — delivery partners on Zomato, Swiggy, and similar platforms — earn daily. But unpredictable events like **heavy rainfall**, **extreme heat**, **platform outages**, or **government curfews** can instantly wipe out a day's income.
+## 🎯 The Problem
 
-Traditional insurance doesn't cover this. GigShield does.
+India's food & grocery delivery partners — riding for **Zomato, Swiggy, Zepto, Amazon** — earn daily wages that can vanish overnight. When heavy rain hits, a platform goes down, or a curfew is imposed, these workers lose 20–30% of their monthly income with **zero recourse**.
+
+Traditional insurance won't touch this. It's too granular, too instant, and too informal for the existing system to handle.
+
+**GigShield does.**
 
 ---
 
 ## 💡 The Solution
 
-GigShield is a **condition-based parametric insurance platform** that:
+GigShield is a **condition-based parametric insurance platform** designed from the ground up for India's gig economy. Instead of claims forms and waiting periods, GigShield uses real-world data triggers to automatically detect disruptions and fire payouts — within minutes, to a worker's UPI ID.
 
-- Automatically detects when a trigger condition is met (e.g., rainfall ≥ 50mm)
-- Processes payouts **within minutes** — no paperwork, no manual claims
-- Uses a **credibility scoring system** to detect and prevent fraud
-- Covers the most vulnerable workers starting at just **₹29/week**
+```
+Trigger Detected → AI Credibility Check → Instant UPI Payout
+        (< 5 minutes end-to-end)
+```
+
+No paperwork. No call centres. No delays.
 
 ---
 
 ## ✨ Key Features
 
 | Feature | Description |
-|--------|-------------|
-| 🌧️ **Parametric Triggers** | Auto-payouts based on rainfall, heat index, AQI, curfews, platform downtime |
-| 🤖 **Smart Claim System** | AI-based credibility scoring for instant or flagged review |
-| 👷 **Worker Dashboard** | View policies, active alerts, submit claims, track payouts |
-| 🛠️ **Admin Dashboard** | Manage workers, review flagged claims, monitor fraud alerts |
-| ⚡ **UPI Payouts** | Instant payout to worker's UPI ID within 5 minutes of approval |
-| 🔒 **Secure Onboarding** | 5-step KYC flow with document upload and mobile verification |
+|---|---|
+| 🌧️ **Parametric Triggers** | Auto-payouts on rainfall ≥ 50mm, heat index ≥ 45°C, AQI ≥ 400, curfews, or platform outages |
+| 🤖 **AI Fraud Detection** | Credibility scoring engine catches GPS spoofing, fake weather claims, duplicate submissions |
+| 👷 **Worker Dashboard** | Active coverage, trigger alerts, claim history, weekly payout tracker |
+| 🛠️ **Admin Dashboard** | KPI cards, claims trend charts, fraud alert queue, live trigger monitoring |
+| ⚡ **UPI Payouts** | Payout to worker's UPI ID within 5 minutes of trigger approval |
+| 🔒 **5-Step KYC Onboarding** | Mobile OTP → Personal Info → Aadhaar/PAN → Gig Platform → Income & Zone |
+| 📊 **Risk-Based Pricing** | Dynamic weekly premiums adjusted for city zone, season, and worker history |
+
+---
+
+## 🏗️ Architecture
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                        GigShield                           │
+│                                                            │
+│  ┌──────────────┐    ┌──────────────┐    ┌─────────────┐   │
+│  │  Next.js 16  │    │  Express.js  │    │  Supabase   │   │
+│  │  App Router  │◄──►│  REST API    │◄──►│  PostgreSQL │   │
+│  │  TypeScript  │    │  Node.js     │    │  Auth + RLS │   │
+│  └──────┬───────┘    └──────┬───────┘    └──────┬──────┘   │
+│         │                   │                   │          │
+│  ┌──────▼───────────────────▼───────────────────▼──────┐   │
+│  │            External Integrations (Mock/Live)        │   │
+│  │  🌦 Weather API  |  📡 Platform APIs  |  💸 UPI    |   |
+│  └─────────────────────────────────────────────────────┘   │
+└────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## 🖥️ Screenshots
 
-### Login Page
-> Two-panel design with product highlights and secure sign-in
+> ### Login Page
+> Two-panel design with product highlights and secure sign-in. Clean, professional, and built for trust.
 
-### Worker Dashboard
-> Active coverage status, weekly premium, parametric triggers, and activity overview
+> ### Worker Dashboard  
+> At-a-glance view of active coverage, weekly premium, live trigger status, and recent payout history.
 
-### Admin Dashboard
-> KPI cards, claims trend charts, fraud alerts, and active trigger monitoring
+> ### Admin Dashboard  
+> Full operational control — KPI cards, claims trend charts, fraud alerts, and real-time trigger monitoring across all zones.
 
-### Onboarding Flow
-> 5-step guided onboarding: mobile verify → personal info → KYC → gig platform → income & zone
+> ### Onboarding Flow  
+> 5-step guided onboarding built for low-friction mobile completion: Mobile OTP → Personal Info → KYC → Gig Platform → Income & Zone.
+
+---
+
+## 🌧️ Parametric Triggers
+
+GigShield monitors these conditions automatically using real-time and mock APIs:
+
+| Trigger | Threshold | Coverage Type |
+|---|---|---|
+| 🌧️ Heavy Rainfall | ≥ 50mm in 3 hours | Income Replacement |
+| 🌡️ Extreme Heat | Feels-like ≥ 45°C for 4+ hours | Income Replacement |
+| 😷 Severe AQI | AQI ≥ 400 + GRAP Stage IV | Income Replacement |
+| 🚫 Curfew / Bandh | Official government order issued | Income Replacement |
+| 📵 Platform Outage | App down ≥ 2 hours (verified via mock API) | Income Replacement |
+
+> ⚠️ **Coverage is strictly for lost income only.** Vehicle repairs, health, and accidents are excluded by design.
+
+---
+
+## 💰 Coverage Tiers
+
+| Tier | Weekly Earnings | Weekly Premium | Max Weekly Payout |
+|---|---|---|---|
+| 🔵 Starter | < ₹3,500 | **₹29** | ₹1,500 |
+| 🟠 Standard | ₹3,500 – ₹5,500 | **₹49** | ₹2,500 |
+| 🟣 Pro | > ₹5,500 | **₹79** | ₹4,000 |
+
+> Premium is dynamically adjusted based on city risk zone and seasonal weather factors via the AI pricing engine.
+
+---
+
+## 🤖 AI & Fraud Detection
+
+GigShield's credibility scoring system runs on every claim to detect and prevent fraud before payout:
+
+- **GPS Spoofing Detection** — Cross-references claimed location against historical delivery zone data
+- **Weather Claim Validation** — Compares claim timestamp with official API weather records for the worker's zone
+- **Duplicate Claim Prevention** — Deduplication logic prevents re-filing the same event
+- **Anomaly Scoring** — ML-powered score flags unusual claim patterns for admin review
+- **Auto-approve vs. Flagged Review** — Low-risk claims go straight to UPI payout; high-risk claims enter a manual review queue
 
 ---
 
 ## 🏗️ Tech Stack
 
 ### Frontend
-- **Next.js 16** — App Router, server components
-- **TypeScript** — Full type safety
+- **Next.js 16** — App Router, server components, SSR
+- **TypeScript** — Full end-to-end type safety
 - **Tailwind CSS 4** — Utility-first styling
-- **Recharts** — Data visualization for admin analytics
-- **Supabase SSR** — Server-side auth and data fetching
+- **Recharts** — Analytics visualizations on admin dashboard
 
 ### Backend
 - **Express.js** — REST API for premium calculation and UPI verification
-- **Supabase** — PostgreSQL database, Row Level Security, Auth
-- **Node.js** — Runtime
+- **Node.js v22+** — Runtime
 
 ### Infrastructure
+- **Supabase** — PostgreSQL database, Row Level Security, Auth, Storage
 - **Supabase Auth** — Email + session management
-- **Supabase Storage** — KYC document uploads
-- **Row Level Security** — Per-user data isolation
+- **Supabase Storage** — KYC document uploads (Aadhaar, PAN, selfie)
+- **Row Level Security** — Per-user data isolation enforced at DB level
 
 ---
 
@@ -82,37 +162,71 @@ GigShield is a **condition-based parametric insurance platform** that:
 
 ```
 GigShield/
-├── Guidewire-DEVTrails-Hackathon/     # Frontend (Next.js)
+├── Guidewire-DEVTrails-Hackathon/          # Frontend (Next.js)
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── (auth)/                # Login & Signup pages
-│   │   │   ├── admin/                 # Admin dashboard & sub-pages
-│   │   │   ├── auth/callback/         # Email confirmation handler
-│   │   │   ├── onboarding/            # 5-step onboarding flow
-│   │   │   │   ├── step-1/            # Mobile verification
-│   │   │   │   ├── step-2/            # Personal details
-│   │   │   │   ├── step-3/            # KYC documents
-│   │   │   │   ├── step-4/            # Gig platform details
-│   │   │   │   └── step-5/            # Income & zone
-│   │   │   └── worker/                # Worker dashboard
-│   │   ├── components/                # Shared UI components
-│   │   ├── context/                   # Auth context
-│   │   ├── data/                      # Mock data for admin demo
-│   │   └── lib/                       # Supabase browser/server clients
-│   └── middleware.ts                  # Route protection
+│   │   │   ├── (auth)/                     # Login & Signup pages
+│   │   │   │   ├── login/
+│   │   │   │   └── signup/
+│   │   │   ├── admin/                      # Admin dashboard & sub-pages
+│   │   │   │   ├── claims/                 # Claims management
+│   │   │   │   ├── dashboard/              # KPIs & analytics
+│   │   │   │   ├── fraud/                  # Fraud alert queue
+│   │   │   │   ├── policies/               # Policy management
+│   │   │   │   ├── settings/
+│   │   │   │   ├── triggers/               # Live trigger monitoring
+│   │   │   │   └── workers/                # Worker management
+│   │   │   ├── api/
+│   │   │   │   ├── send-otp/               # OTP delivery
+│   │   │   │   └── verify-otp/             # OTP verification
+│   │   │   ├── auth/callback/              # Email confirmation handler
+│   │   │   ├── onboarding/                 # 5-step onboarding flow
+│   │   │   │   ├── step-1/                 # Mobile verification
+│   │   │   │   ├── step-2/                 # Personal details
+│   │   │   │   ├── step-3/                 # KYC documents
+│   │   │   │   ├── step-4/                 # Gig platform details
+│   │   │   │   └── step-5/                 # Income & zone
+│   │   │   └── worker/                     # Worker-facing app
+│   │   │       ├── dashboard/              # Main worker dashboard
+│   │   │       ├── my-claims/              # Claim history
+│   │   │       ├── my-policy/              # Active policy details
+│   │   │       ├── profile/                # Worker profile
+│   │   │       └── weekly-payout/          # Payout tracker
+│   │   ├── components/                     # Shared UI components
+│   │   ├── context/                        # Auth context
+│   │   ├── data/                           # Mock data for admin demo
+│   │   └── lib/                            # Supabase browser/server clients
+│   └── middleware.ts                       # Route protection
 │
-└── backend/                           # Express.js API
+└── backend/                                # Express.js API
     └── src/
+        ├── config/
+        ├── controllers/
+        ├── middleware/
         └── routes/
-            └── onboarding.ts          # Premium calculation, UPI verify
+            ├── claims.ts                   # Claims processing
+            └── onboarding.ts               # Premium calc, UPI verify
 ```
+
+---
+
+## 🗃️ Database Schema
+
+Key tables in Supabase PostgreSQL:
+
+| Table | Purpose |
+|---|---|
+| `worker_profiles` | User profile, onboarding status, city, mobile |
+| `kyc_documents` | Aadhaar/PAN uploads, selfie, dashboard screenshot |
+| `gig_profiles` | Platform, vehicle type, working hours, tenure |
+| `income_data` | Daily earnings, working days, zone, tier classification |
+| `payment_info` | UPI ID or bank account for payouts |
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-
 - Node.js v22+
 - npm
 - A [Supabase](https://supabase.com) project
@@ -140,7 +254,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 ### 3. Set up the database
 
-Run the following in your Supabase SQL Editor:
+Run in your Supabase SQL Editor:
 
 ```sql
 -- Auto-create worker profile on signup
@@ -185,59 +299,25 @@ cd ../Guidewire-DEVTrails-Hackathon
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3000](http://localhost:3000) 🎉
 
 ---
 
 ## 🔐 Authentication Flow
 
 ```
-Signup → Check inbox → Click confirmation link
-  → /auth/callback → /onboarding/step-1
-  → Complete 5 steps → /worker/dashboard
+Signup → Confirm Email → /auth/callback
+  → /onboarding/step-1 (Mobile OTP)
+  → /onboarding/step-2 (Personal Details)
+  → /onboarding/step-3 (KYC Documents)
+  → /onboarding/step-4 (Gig Platform)
+  → /onboarding/step-5 (Income & Zone)
+  → /worker/dashboard ✅
 
 Login → Check onboarding_complete
   → true  → /worker/dashboard
-  → false → Resume from last onboarding_step
+  → false → Resume from last saved onboarding_step
 ```
-
----
-
-## 🛡️ Parametric Triggers
-
-GigShield monitors the following conditions automatically:
-
-| Trigger | Threshold | Coverage |
-|---------|-----------|----------|
-| 🌧️ Heavy Rainfall | ≥ 50mm in 3 hours | Income replacement |
-| 🌡️ Extreme Heat | Feels-like ≥ 45°C for 4+ hours | Income replacement |
-| 😷 Severe AQI | AQI ≥ 400 + GRAP Stage IV | Income replacement |
-| 🚫 Curfew / Bandh | Official government order | Income replacement |
-| 📵 Platform Outage | App down ≥ 2 hours | Income replacement |
-
----
-
-## 💰 Coverage Tiers
-
-| Tier | Weekly Earnings | Weekly Premium | Max Weekly Payout |
-|------|----------------|----------------|-------------------|
-| 🔵 Starter | < ₹3,500 | ₹29 | ₹1,500 |
-| 🟠 Standard | ₹3,500 – ₹5,500 | ₹49 | ₹2,500 |
-| 🟣 Pro | > ₹5,500 | ₹79 | ₹4,000 |
-
-Premium is further adjusted by city risk zone and seasonal factors.
-
----
-
-## 🗃️ Database Schema
-
-Key tables in Supabase:
-
-- `worker_profiles` — User profile, onboarding status, city, mobile
-- `kyc_documents` — Aadhaar/PAN uploads, selfie, dashboard screenshot
-- `gig_profiles` — Platform, vehicle type, working hours, tenure
-- `income_data` — Daily earnings, working days, zone, tier classification
-- `payment_info` — UPI ID or bank account for payouts
 
 ---
 
@@ -245,9 +325,20 @@ Key tables in Supabase:
 
 For testing the worker onboarding flow:
 
-- **OTP**: Use any 10-digit mobile number, then enter `123456` as the OTP
+- **Mobile OTP:** Use any 10-digit mobile number → Enter `123456` as OTP
+- **Admin Dashboard:** Use the pre-seeded admin account configured in your Supabase auth provider
 
-For the admin dashboard, use the pre-seeded admin account configured in your auth provider.
+---
+
+## 🗓️ Hackathon Journey
+
+This project was built across 6 weeks as part of the **Guidewire DEVTrails 2026** Hackathon:
+
+| Phase | Theme | Deliverable |
+|---|---|---|
+| **Week 1–2** | Ideate & Know Your Worker | Idea doc, personas, tech plan, 2-min video |
+| **Week 3–4** | Protect Your Worker | Registration, policy management, dynamic premiums, claims |
+| **Week 5–6** | Perfect for Your Worker | Fraud detection, instant payouts, full dashboards, final pitch |
 
 ---
 
@@ -261,28 +352,16 @@ For the admin dashboard, use the pre-seeded admin account configured in your aut
 
 ---
 
-## 🆕 Latest Progress
-
-- **Real-Time Data Integration:** Set up real-time WebSockets tracking for policy updates and claims (`fix_realtime.sql`).
-- **AI Fraud Detection:** Integrated Google Gemini for AI-based fraud evaluation and claims verification (`test_gemini.js`, `setup_fraud_trigger.sql`).
-- **Claims Management & Seeding:** Built robust claim lifecycle logic, including seeding initial data and validating records (`seed_claims.js`, `check_claims.js`).
-- **Notifications System:** Added automated alerts for pending actions and payouts (`setup_notifications.sql`, `update_notifications.sql`).
-- **Admin Roles & Coverage Tools:** Extended the admin dashboard capabilities and worker income calculations (`setup_admin.sql`, `fix_income.js`).
-- **Enhanced Security & Auth:** Fixed OTP validation flows and enhanced password safety configurations.
-- **UI Enhancements:** Fixed the worker dashboard calamities display to accurately render parametric triggers.
-
----
-
 ## 📄 License
 
-This project was built for the **Guidewire DEVTrails Hackathon**.
+Built for the **Guidewire DEVTrails 2026 Hackathon**.
 
 ---
 
-## 👥 Team
+<div align="center">
 
-Built with ❤️ for India's 15 million+ gig workers.
+**Built with ❤️ for India's 15 million+ gig workers**
 
----
+*"GigShield brings financial security and stability to gig workers by protecting their income against unpredictable disruptions — automatically, fairly, and within minutes."*
 
-> *"GigShield aims to bring financial security and stability to gig workers by protecting their income against unpredictable disruptions."*
+</div>
